@@ -9,7 +9,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 
-from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, GANLoss_smooth, sobelLayer
+from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, sobelLayer
 from data import get_training_set, get_test_set
 
 # Training settings
@@ -62,7 +62,7 @@ sobelLambda = 0
 net_g = define_G(opt.input_nc, opt.output_nc, opt.ngf, 'batch', False, 'normal', 0.02, gpu_id=device)
 net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_id=device)
 
-criterionGAN = GANLoss_smooth().to(device)
+criterionGAN = GANLoss().to(device)
 criterionL1 = nn.L1Loss().to(device)
 criterionMSE = nn.MSELoss().to(device)
 
