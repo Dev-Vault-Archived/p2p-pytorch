@@ -5,6 +5,7 @@ from torch.nn import init
 import torch.nn.functional as F
 from torch.autograd import Variable
 import functools
+import random
 from torch.optim import lr_scheduler
 
 
