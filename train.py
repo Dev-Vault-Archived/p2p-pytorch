@@ -88,14 +88,14 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         # train with fake
 
         # sobel layer
-        fake_sobel = sobelLayer(fake_b)
+        fake_sobel = sobelLayer(fake_b, gpu_id=device)
 
         fake_ab = torch.cat((real_a, fake_b), 1)
         pred_fake = net_d.forward(fake_ab.detach())
         loss_d_fake = criterionGAN(pred_fake, False)
 
         # train with real
-        real_sobel = sobelLayer(real_b).detach()
+        real_sobel = sobelLayer(real_b, gpu_id=device).detach()
 
         real_ab = torch.cat((real_a, real_b), 1)
         pred_real = net_d.forward(real_ab)
