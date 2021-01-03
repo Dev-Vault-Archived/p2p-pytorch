@@ -9,7 +9,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 
-from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate
+from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, GANLoss_smooth, sobelLayer
 from data import get_training_set, get_test_set
 
 # Training settings
@@ -56,10 +56,13 @@ testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batc
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 
 print('===> Building models')
+
+sobelLambda = 0
+
 net_g = define_G(opt.input_nc, opt.output_nc, opt.ngf, 'batch', False, 'normal', 0.02, gpu_id=device)
 net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_id=device)
 
-criterionGAN = GANLoss().to(device)
+criterionGAN = GANLoss_smooth().to(device)
 criterionL1 = nn.L1Loss().to(device)
 criterionMSE = nn.MSELoss().to(device)
 
@@ -83,11 +86,17 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         optimizer_d.zero_grad()
         
         # train with fake
+
+        # sobel layer
+        fake_sobel = sobelLayer(fake_b)
+
         fake_ab = torch.cat((real_a, fake_b), 1)
         pred_fake = net_d.forward(fake_ab.detach())
         loss_d_fake = criterionGAN(pred_fake, False)
 
         # train with real
+        real_sobel = sobelLayer(real_b).detach()
+
         real_ab = torch.cat((real_a, real_b), 1)
         pred_real = net_d.forward(real_ab)
         loss_d_real = criterionGAN(pred_real, True)
@@ -114,6 +123,9 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         loss_g_l1 = criterionL1(fake_b, real_b) * opt.lamb
         
         loss_g = loss_g_gan + loss_g_l1
+
+        loss_sobelL1 = criterionL1(fake_sobel, real_sobel) * sobelLambda
+        loss_g += loss_sobelL1
         
         loss_g.backward()
 
@@ -124,6 +136,11 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
 
     update_learning_rate(net_g_scheduler, optimizer_g)
     update_learning_rate(net_d_scheduler, optimizer_d)
+
+    if epoch <= 20:
+        sobelLambda = 100/20*epoch
+
+        print('Update sobel lambda: %f' % (sobelLambda))
 
     # test
     avg_psnr = 0
