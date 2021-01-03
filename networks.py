@@ -129,7 +129,7 @@ class Inconv(nn.Module):
     def __init__(self, in_ch, out_ch, norm_layer, use_bias):
         super(Inconv, self).__init__()
         self.inconv = nn.Sequential(
-            nn.ReflectionPad2d(3),
+            nn.ReflectionPad3d(3),
             nn.Conv3d(in_ch, out_ch, kernel_size=7, padding=0,
                       bias=use_bias),
             norm_layer(out_ch),
@@ -166,9 +166,9 @@ class ResBlock(nn.Module):
         conv_block = []
         p = 0
         if padding_type == 'reflect':
-            conv_block += [nn.ReflectionPad2d(1)]
+            conv_block += [nn.ReflectionPad3d(1)]
         elif padding_type == 'replicate':
-            conv_block += [nn.ReplicationPad2d(1)]
+            conv_block += [nn.ReplicationPad3d(1)]
         elif padding_type == 'zero':
             p = 1
         else:
@@ -182,9 +182,9 @@ class ResBlock(nn.Module):
 
         p = 0
         if padding_type == 'reflect':
-            conv_block += [nn.ReflectionPad2d(1)]
+            conv_block += [nn.ReflectionPad3d(1)]
         elif padding_type == 'replicate':
-            conv_block += [nn.ReplicationPad2d(1)]
+            conv_block += [nn.ReplicationPad3d(1)]
         elif padding_type == 'zero':
             p = 1
         else:
@@ -207,7 +207,7 @@ class Up(nn.Module):
             # nn.Conv3d(in_ch, out_ch,
             #           kernel_size=3, stride=1,
             #           padding=1, bias=use_bias),
-            nn.ConvTranspose2d(in_ch, out_ch,
+            nn.ConvTranspose3d(in_ch, out_ch,
                                kernel_size=3, stride=2,
                                padding=1, output_padding=1,
                                bias=use_bias),
@@ -224,7 +224,7 @@ class Outconv(nn.Module):
     def __init__(self, in_ch, out_ch):
         super(Outconv, self).__init__()
         self.outconv = nn.Sequential(
-            nn.ReflectionPad2d(3),
+            nn.ReflectionPad3d(3),
             nn.Conv3d(in_ch, out_ch, kernel_size=7, padding=0),
             nn.Tanh()
         )
