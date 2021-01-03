@@ -382,7 +382,7 @@ class GANLoss_smooth(nn.Module):
         target_tensor = self.get_target_tensor(input, target_is_real, a)
         return self.loss(input, target_tensor)
 
-def sobelLayer(img):
+def sobelLayer(img, gpu_id='cuda:0'):
     img = img.squeeze(0)
     ten = torch.unbind(img)
     x = ten[0].unsqueeze(0).unsqueeze(0)
