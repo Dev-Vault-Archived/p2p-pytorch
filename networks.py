@@ -2,11 +2,16 @@ import torch
 import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
+from torch.nn.modules.utils import _ntuple
 import numpy as np
 from torch.autograd import Variable
 import functools
 from torch.optim import lr_scheduler
 
+class ReflectionPad3d(torch.nn.modules.padding._ReflectionPadNd):
+    def __init__(self, padding):
+        super(ReflectionPad3d, self).__init__()
+        self.padding = _ntuple(6)(padding)
 
 def get_norm_layer(norm_type='instance'):
     if norm_type == 'batch':
@@ -129,7 +134,7 @@ class Inconv(nn.Module):
     def __init__(self, in_ch, out_ch, norm_layer, use_bias):
         super(Inconv, self).__init__()
         self.inconv = nn.Sequential(
-            nn.ReflectionPad3d(3),
+            ReflectionPad3d(3),
             nn.Conv3d(in_ch, out_ch, kernel_size=7, padding=0,
                       bias=use_bias),
             norm_layer(out_ch),
@@ -166,7 +171,7 @@ class ResBlock(nn.Module):
         conv_block = []
         p = 0
         if padding_type == 'reflect':
-            conv_block += [nn.ReflectionPad3d(1)]
+            conv_block += [ReflectionPad3d(1)]
         elif padding_type == 'replicate':
             conv_block += [nn.ReplicationPad3d(1)]
         elif padding_type == 'zero':
@@ -182,7 +187,7 @@ class ResBlock(nn.Module):
 
         p = 0
         if padding_type == 'reflect':
-            conv_block += [nn.ReflectionPad3d(1)]
+            conv_block += [ReflectionPad3d(1)]
         elif padding_type == 'replicate':
             conv_block += [nn.ReplicationPad3d(1)]
         elif padding_type == 'zero':
@@ -224,7 +229,7 @@ class Outconv(nn.Module):
     def __init__(self, in_ch, out_ch):
         super(Outconv, self).__init__()
         self.outconv = nn.Sequential(
-            nn.ReflectionPad3d(3),
+            ReflectionPad3d(3),
             nn.Conv3d(in_ch, out_ch, kernel_size=7, padding=0),
             nn.Tanh()
         )
