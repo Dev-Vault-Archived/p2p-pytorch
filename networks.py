@@ -2,24 +2,18 @@ import torch
 import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
-from torch.nn.modules.utils import _ntuple
-import numpy as np
 from torch.autograd import Variable
 import functools
 from torch.optim import lr_scheduler
 
-class ReflectionPad3d(torch.nn.modules.padding._ReflectionPadNd):
-    def __init__(self, padding):
-        super(ReflectionPad3d, self).__init__()
-        self.padding = _ntuple(6)(padding)
 
 def get_norm_layer(norm_type='instance'):
     if norm_type == 'batch':
-        norm_layer = functools.partial(nn.BatchNorm3d, affine=True)
+        norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
     elif norm_type == 'instance':
-        norm_layer = functools.partial(nn.InstanceNorm3d, affine=False, track_running_stats=False)
+        norm_layer = functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=False)
     elif norm_type == 'switchable':
-        norm_layer = SwitchNorm3D
+        norm_layer = SwitchNorm2d
     elif norm_type == 'none':
         norm_layer = None
     else:
@@ -67,7 +61,7 @@ def init_weights(net, init_type='normal', gain=0.02):
                 raise NotImplementedError('initialization method [%s] is not implemented' % init_type)
             if hasattr(m, 'bias') and m.bias is not None:
                 init.constant_(m.bias.data, 0.0)
-        elif classname.find('BatchNorm3d') != -1:
+        elif classname.find('BatchNorm2d') != -1:
             init.normal_(m.weight.data, 1.0, gain)
             init.constant_(m.bias.data, 0.0)
 
@@ -93,16 +87,16 @@ def define_G(input_nc, output_nc, ngf, norm='batch', use_dropout=False, init_typ
 # Defines the generator that consists of Resnet blocks between a few
 # downsampling/upsampling operations.
 class ResnetGenerator(nn.Module):
-    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm3d, use_dropout=False, n_blocks=9, padding_type='reflect'):
+    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=9, padding_type='reflect'):
         assert(n_blocks >= 0)
         super(ResnetGenerator, self).__init__()
         self.input_nc = input_nc
         self.output_nc = output_nc
         self.ngf = ngf
         if type(norm_layer) == functools.partial:
-            use_bias = norm_layer.func == nn.InstanceNorm3d
+            use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
-            use_bias = norm_layer == nn.InstanceNorm3d
+            use_bias = norm_layer == nn.InstanceNorm2d
 
         self.inc = Inconv(input_nc, ngf, norm_layer, use_bias)
         self.down1 = Down(ngf, ngf * 2, norm_layer, use_bias)
@@ -134,8 +128,8 @@ class Inconv(nn.Module):
     def __init__(self, in_ch, out_ch, norm_layer, use_bias):
         super(Inconv, self).__init__()
         self.inconv = nn.Sequential(
-            ReflectionPad3d(3),
-            nn.Conv3d(in_ch, out_ch, kernel_size=7, padding=0,
+            nn.ReflectionPad2d(3),
+            nn.Conv2d(in_ch, out_ch, kernel_size=7, padding=0,
                       bias=use_bias),
             norm_layer(out_ch),
             nn.ReLU(True)
@@ -150,7 +144,7 @@ class Down(nn.Module):
     def __init__(self, in_ch, out_ch, norm_layer, use_bias):
         super(Down, self).__init__()
         self.down = nn.Sequential(
-            nn.Conv3d(in_ch, out_ch, kernel_size=4,
+            nn.Conv2d(in_ch, out_ch, kernel_size=3,
                       stride=2, padding=1, bias=use_bias),
             norm_layer(out_ch),
             nn.ReLU(True)
@@ -171,15 +165,15 @@ class ResBlock(nn.Module):
         conv_block = []
         p = 0
         if padding_type == 'reflect':
-            conv_block += [ReflectionPad3d(1)]
+            conv_block += [nn.ReflectionPad2d(1)]
         elif padding_type == 'replicate':
-            conv_block += [nn.ReplicationPad3d(1)]
+            conv_block += [nn.ReplicationPad2d(1)]
         elif padding_type == 'zero':
             p = 1
         else:
             raise NotImplementedError('padding [%s] is not implemented' % padding_type)
 
-        conv_block += [nn.Conv3d(dim, dim, kernel_size=4, padding=p, bias=use_bias),
+        conv_block += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
                        norm_layer(dim),
                        nn.ReLU(True)]
         if use_dropout:
@@ -187,14 +181,14 @@ class ResBlock(nn.Module):
 
         p = 0
         if padding_type == 'reflect':
-            conv_block += [ReflectionPad3d(1)]
+            conv_block += [nn.ReflectionPad2d(1)]
         elif padding_type == 'replicate':
-            conv_block += [nn.ReplicationPad3d(1)]
+            conv_block += [nn.ReplicationPad2d(1)]
         elif padding_type == 'zero':
             p = 1
         else:
             raise NotImplementedError('padding [%s] is not implemented' % padding_type)
-        conv_block += [nn.Conv3d(dim, dim, kernel_size=4, padding=p, bias=use_bias),
+        conv_block += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
                        norm_layer(dim)]
 
         return nn.Sequential(*conv_block)
@@ -209,11 +203,11 @@ class Up(nn.Module):
         super(Up, self).__init__()
         self.up = nn.Sequential(
             # nn.Upsample(scale_factor=2, mode='nearest'),
-            # nn.Conv3d(in_ch, out_ch,
-            #           kernel_size=4, stride=1,
+            # nn.Conv2d(in_ch, out_ch,
+            #           kernel_size=3, stride=1,
             #           padding=1, bias=use_bias),
-            nn.ConvTranspose3d(in_ch, out_ch,
-                               kernel_size=4, stride=2,
+            nn.ConvTranspose2d(in_ch, out_ch,
+                               kernel_size=3, stride=2,
                                padding=1, output_padding=1,
                                bias=use_bias),
             norm_layer(out_ch),
@@ -229,8 +223,8 @@ class Outconv(nn.Module):
     def __init__(self, in_ch, out_ch):
         super(Outconv, self).__init__()
         self.outconv = nn.Sequential(
-            ReflectionPad3d(3),
-            nn.Conv3d(in_ch, out_ch, kernel_size=7, padding=0),
+            nn.ReflectionPad2d(3),
+            nn.Conv2d(in_ch, out_ch, kernel_size=7, padding=0),
             nn.Tanh()
         )
 
@@ -258,17 +252,17 @@ def define_D(input_nc, ndf, netD,
 
 # Defines the PatchGAN discriminator with the specified arguments.
 class NLayerDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm3d, use_sigmoid=False):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_sigmoid=False):
         super(NLayerDiscriminator, self).__init__()
         if type(norm_layer) == functools.partial:
-            use_bias = norm_layer.func == nn.InstanceNorm3d
+            use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
-            use_bias = norm_layer == nn.InstanceNorm3d
+            use_bias = norm_layer == nn.InstanceNorm2d
 
         kw = 4
         padw = 1
         sequence = [
-            nn.Conv3d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
+            nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
             nn.LeakyReLU(0.2, True)
         ]
 
@@ -278,22 +272,22 @@ class NLayerDiscriminator(nn.Module):
             nf_mult_prev = nf_mult
             nf_mult = min(2**n, 8)
             sequence += [
-                nn.Conv3d(ndf * nf_mult_prev, ndf * nf_mult,
+                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult,
                           kernel_size=kw, stride=2, padding=padw, bias=use_bias),
-                norm_layer(ndf * nf_mult, affine=True),
+                norm_layer(ndf * nf_mult),
                 nn.LeakyReLU(0.2, True)
             ]
 
         nf_mult_prev = nf_mult
         nf_mult = min(2**n_layers, 8)
         sequence += [
-            nn.Conv3d(ndf * nf_mult_prev, ndf * nf_mult,
+            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult,
                       kernel_size=kw, stride=1, padding=padw, bias=use_bias),
             norm_layer(ndf * nf_mult),
             nn.LeakyReLU(0.2, True)
         ]
 
-        sequence += [nn.Conv3d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]
+        sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]
 
         if use_sigmoid:
             sequence += [nn.Sigmoid()]
@@ -305,20 +299,20 @@ class NLayerDiscriminator(nn.Module):
 
 
 class PixelDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm3d, use_sigmoid=False):
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d, use_sigmoid=False):
         super(PixelDiscriminator, self).__init__()
         if type(norm_layer) == functools.partial:
-            use_bias = norm_layer.func == nn.InstanceNorm3d
+            use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
-            use_bias = norm_layer == nn.InstanceNorm3d
+            use_bias = norm_layer == nn.InstanceNorm2d
 
         self.net = [
-            nn.Conv3d(input_nc, ndf, kernel_size=1, stride=1, padding=0),
+            nn.Conv2d(input_nc, ndf, kernel_size=1, stride=1, padding=0),
             nn.LeakyReLU(0.2, True),
-            nn.Conv3d(ndf, ndf * 2, kernel_size=1, stride=1, padding=0, bias=use_bias),
+            nn.Conv2d(ndf, ndf * 2, kernel_size=1, stride=1, padding=0, bias=use_bias),
             norm_layer(ndf * 2),
             nn.LeakyReLU(0.2, True),
-            nn.Conv3d(ndf * 2, 1, kernel_size=1, stride=1, padding=0, bias=use_bias)]
+            nn.Conv2d(ndf * 2, 1, kernel_size=1, stride=1, padding=0, bias=use_bias)]
 
         if use_sigmoid:
             self.net.append(nn.Sigmoid())
@@ -387,39 +381,57 @@ class GANLoss_smooth(nn.Module):
         target_tensor = self.get_target_tensor(input, target_is_real, a)
         return self.loss(input, target_tensor)
 
-def create3DsobelFilter():
-    num_1, num_2, num_3 = np.zeros((3,3))
-    num_1 = [[1., 2., 1.],
-             [2., 4., 2.],
-             [1., 2., 1.]]
-    num_2 = [[0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.]]
-    num_3 = [[-1., -2., -1.],
-             [-2., -4., -2.],
-             [-1., -2., -1.]]
-    sobelFilter = np.zeros((3,1,3,3,3))
+def sobelLayer(img):
+    img = img.squeeze(0)
+    ten = torch.unbind(img)
+    x=ten[0].unsqueeze(0).unsqueeze(0)
+    
+    a = np.array([[1, 0, -1],[2,0,-2],[1,0,-1]])
+    conv1 = nn.Conv2d(1, 1, kernel_size=3, stride=1, padding=1, bias=False)
+    conv1.weight = nn.Parameter(torch.from_numpy(a).float().unsqueeze(0).unsqueeze(0))
+    G_x = conv1(Variable(x)).data.view(1,x.shape[2],x.shape[3])
 
-    sobelFilter[0,0,0,:,:] = num_1
-    sobelFilter[0,0,1,:,:] = num_2
-    sobelFilter[0,0,2,:,:] = num_3
-    sobelFilter[1,0,:,0,:] = num_1
-    sobelFilter[1,0,:,1,:] = num_2
-    sobelFilter[1,0,:,2,:] = num_3
-    sobelFilter[2,0,:,:,0] = num_1
-    sobelFilter[2,0,:,:,1] = num_2
-    sobelFilter[2,0,:,:,2] = num_3
+    b = np.array([[1, 2, 1],[0,0,0],[-1,-2,-1]])
+    conv2 = nn.Conv2d(1, 1, kernel_size=3, stride=1, padding=1, bias=False)
+    conv2.weight = nn.Parameter(torch.from_numpy(b).float().unsqueeze(0).unsqueeze(0))
+    G_y = conv2(Variable(x)).data.view(1,x.shape[2],x.shape[3])
 
-    return Variable(torch.from_numpy(sobelFilter).type(torch.cuda.FloatTensor))
+    G = torch.sqrt(torch.pow(G_x,2)+ torch.pow(G_y,2))
+    return G
 
-def sobelLayer(input):
-    pad = nn.ConstantPad3d((1, 1, 1, 1, 1, 1), -1)
-    kernel = create3DsobelFilter()
-    activate = nn.Tanh()
-    paded = pad(input)
-    fake_sobel = F.conv3d(paded, kernel, padding = 0, groups = 1)/4
-    n,c,h,w,l = fake_sobel.size()
-    fake = torch.norm(fake_sobel, 2, 1, True)/c*3
-    fake_out = activate(fake)*2 - 1
+# def create3DsobelFilter():
+#     num_1, num_2, num_3 = np.zeros((3,3))
+#     num_1 = [[1., 2., 1.],
+#              [2., 4., 2.],
+#              [1., 2., 1.]]
+#     num_2 = [[0., 0., 0.],
+#              [0., 0., 0.],
+#              [0., 0., 0.]]
+#     num_3 = [[-1., -2., -1.],
+#              [-2., -4., -2.],
+#              [-1., -2., -1.]]
+#     sobelFilter = np.zeros((3,1,3,3,3))
 
-    return fake_out
+#     sobelFilter[0,0,0,:,:] = num_1
+#     sobelFilter[0,0,1,:,:] = num_2
+#     sobelFilter[0,0,2,:,:] = num_3
+#     sobelFilter[1,0,:,0,:] = num_1
+#     sobelFilter[1,0,:,1,:] = num_2
+#     sobelFilter[1,0,:,2,:] = num_3
+#     sobelFilter[2,0,:,:,0] = num_1
+#     sobelFilter[2,0,:,:,1] = num_2
+#     sobelFilter[2,0,:,:,2] = num_3
+
+#     return Variable(torch.from_numpy(sobelFilter).type(torch.cuda.FloatTensor))
+
+# def sobelLayer(input):
+#     pad = nn.ConstantPad3d((1, 1, 1, 1, 1, 1), -1)
+#     kernel = create3DsobelFilter()
+#     activate = nn.Tanh()
+#     paded = pad(input)
+#     fake_sobel = F.conv3d(paded, kernel, padding = 0, groups = 1)/4
+#     n,c,h,w,l = fake_sobel.size()
+#     fake = torch.norm(fake_sobel, 2, 1, True)/c*3
+#     fake_out = activate(fake)*2 - 1
+
+#     return fake_out
