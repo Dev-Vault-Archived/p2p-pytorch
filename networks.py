@@ -389,12 +389,12 @@ def sobelLayer(img, gpu_id='cuda:0'):
     
     a = np.array([[1, 0, -1], [2,0,-2], [1,0,-1]])
     conv1 = nn.Conv2d(1, 1, kernel_size=3, stride=1, padding=1, bias=False).to(gpu_id)
-    conv1.weight = nn.Parameter(torch.from_numpy(a).float().unsqueeze(0).unsqueeze(0))
+    conv1.weight = nn.Parameter(torch.from_numpy(a).float().unsqueeze(0).unsqueeze(0).to(gpu_id))
     G_x = conv1(Variable(x)).data.view(1, x.shape[2], x.shape[3])
 
     b = np.array([[1, 2, 1], [0,0,0], [-1,-2,-1]])
     conv2 = nn.Conv2d(1, 1, kernel_size=3, stride=1, padding=1, bias=False).to(gpu_id)
-    conv2.weight = nn.Parameter(torch.from_numpy(b).float().unsqueeze(0).unsqueeze(0))
+    conv2.weight = nn.Parameter(torch.from_numpy(b).float().unsqueeze(0).unsqueeze(0).to(gpu_id))
     G_y = conv2(Variable(x)).data.view(1, x.shape[2], x.shape[3])
 
     G = torch.sqrt(torch.pow(G_x,2)+ torch.pow(G_y,2))
