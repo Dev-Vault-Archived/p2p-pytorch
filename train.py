@@ -131,8 +131,8 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
 
         optimizer_g.step()
 
-        print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f}".format(
-            epoch, iteration, len(training_data_loader), loss_d.item(), loss_g.item()))
+        print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f} Loss Sobel: {:.4f}".format(
+            epoch, iteration, len(training_data_loader), loss_d.item(), loss_g.item(), loss_sobelL1.item()))
 
     update_learning_rate(net_g_scheduler, optimizer_g)
     update_learning_rate(net_d_scheduler, optimizer_d)
