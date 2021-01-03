@@ -150,7 +150,7 @@ class Down(nn.Module):
     def __init__(self, in_ch, out_ch, norm_layer, use_bias):
         super(Down, self).__init__()
         self.down = nn.Sequential(
-            nn.Conv3d(in_ch, out_ch, kernel_size=3,
+            nn.Conv3d(in_ch, out_ch, kernel_size=4,
                       stride=2, padding=1, bias=use_bias),
             norm_layer(out_ch),
             nn.ReLU(True)
@@ -179,7 +179,7 @@ class ResBlock(nn.Module):
         else:
             raise NotImplementedError('padding [%s] is not implemented' % padding_type)
 
-        conv_block += [nn.Conv3d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
+        conv_block += [nn.Conv3d(dim, dim, kernel_size=4, padding=p, bias=use_bias),
                        norm_layer(dim),
                        nn.ReLU(True)]
         if use_dropout:
@@ -194,7 +194,7 @@ class ResBlock(nn.Module):
             p = 1
         else:
             raise NotImplementedError('padding [%s] is not implemented' % padding_type)
-        conv_block += [nn.Conv3d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
+        conv_block += [nn.Conv3d(dim, dim, kernel_size=4, padding=p, bias=use_bias),
                        norm_layer(dim)]
 
         return nn.Sequential(*conv_block)
@@ -210,10 +210,10 @@ class Up(nn.Module):
         self.up = nn.Sequential(
             # nn.Upsample(scale_factor=2, mode='nearest'),
             # nn.Conv3d(in_ch, out_ch,
-            #           kernel_size=3, stride=1,
+            #           kernel_size=4, stride=1,
             #           padding=1, bias=use_bias),
             nn.ConvTranspose3d(in_ch, out_ch,
-                               kernel_size=3, stride=2,
+                               kernel_size=4, stride=2,
                                padding=1, output_padding=1,
                                bias=use_bias),
             norm_layer(out_ch),
