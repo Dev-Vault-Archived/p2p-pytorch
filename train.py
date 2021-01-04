@@ -4,7 +4,7 @@ import os
 from math import log10
 
 from tqdm import tqdm
-
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -16,6 +16,13 @@ from networks import define_G, define_D, GANLoss, get_scheduler, update_learning
 from data import get_training_set, get_test_set
 
 mse_criterion = torch.nn.MSELoss(reduction='mean')
+
+def psnr(ground, compressed):
+    np_ground = np.array(ground, dtype='float')
+    np_compressed = np.array(compressed, dtype='float')
+    mse = np.mean((np_ground - np_compressed)**2)
+    psnr = np.log10(255**2/mse) * 10
+    return psnr
 
 def extract_features(model, x, layers):
     features = list()
@@ -210,9 +217,9 @@ if __name__ == '__main__':
             input, target = batch[0].to(device), batch[1].to(device)
 
             prediction = net_g(input)
-            mse = criterionMSE(prediction, target)
-            psnr = 10 * log10(1 / mse.item())
-            avg_psnr += psnr
+            # mse = criterionMSE(prediction, target)
+            # psnr = 10 * log10(1 / mse.item())
+            avg_psnr += psnr(target, prediction)
         print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(testing_data_loader)))
 
         #checkpoint
