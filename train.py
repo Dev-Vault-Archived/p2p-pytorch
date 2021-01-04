@@ -3,6 +3,8 @@ import argparse
 import os
 from math import log10
 
+from tqdm import tqdm
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -102,9 +104,11 @@ if __name__ == '__main__':
     net_g_scheduler = get_scheduler(optimizer_g, opt)
     net_d_scheduler = get_scheduler(optimizer_d, opt)
 
-    for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
+    num_epoch = opt.niter + opt.niter_decay + 1
+    for epoch in range(opt.epoch_count, num_epoch):
         # train
-        for iteration, batch in enumerate(training_data_loader, 1):
+        bar = tqdm(enumerate(training_data_loader, 1))
+        for iteration, batch in bar:
             # forward
             real_a, real_b = batch[0].to(device), batch[1].to(device)
 
@@ -178,8 +182,19 @@ if __name__ == '__main__':
 
             optimizer_g.step()
             
-            print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f} Loss_GFeat: {:.4f} Loss_Sobel: {:.4f} Loss_Perp: {:.4f} Loss_TV: {:.4f}".format(
-                epoch, iteration, len(training_data_loader), loss_d.item(), loss_g.item(), loss_G_GAN_Feat.item(), loss_sobelL1.item(), content_loss.item(), tv_loss.item()))
+            bar.set_description(desc='itr: %d [%3d/%3d] [D Loss: %.6f] [G Loss: %.6f] [GFeat Loss: %.6f] [S Loss: %.6f] [Perp Loss: %.6f] [TV Loss: %.6f]' %(
+                (epoch - 1) + iteration,
+                epoch,
+                num_epoch,
+                loss_d.item(),
+                loss_g.item(),
+                loss_G_GAN_Feat.item(),
+                loss_sobelL1.item(),
+                content_loss.item(),
+                tv_loss.item()
+            ))
+            # print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f} Loss_GFeat: {:.4f} Loss_Sobel: {:.4f} Loss_Perp: {:.4f} Loss_TV: {:.4f}".format(
+                # epoch, iteration, len(training_data_loader), loss_d.item(), loss_g.item(), loss_G_GAN_Feat.item(), loss_sobelL1.item(), content_loss.item(), tv_loss.item()))
 
         update_learning_rate(net_g_scheduler, optimizer_g)
         update_learning_rate(net_d_scheduler, optimizer_d)
@@ -208,6 +223,6 @@ if __name__ == '__main__':
                 os.mkdir(os.path.join("checkpoint", opt.dataset))
             net_g_model_out_path = "checkpoint/{}/netG_model_epoch_{}.pth".format(opt.dataset, epoch)
             net_d_model_out_path = "checkpoint/{}/netD_model_epoch_{}.pth".format(opt.dataset, epoch)
-            torch.save(net_g, net_g_model_out_path)
-            torch.save(net_d, net_d_model_out_path)
+            torch.save(net_g.state_dict(), net_g_model_out_path)
+            # torch.save(net_d, net_d_model_out_path)
             print("Checkpoint saved to {}".format("checkpoint" + opt.dataset))
