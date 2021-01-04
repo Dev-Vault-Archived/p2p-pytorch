@@ -12,14 +12,26 @@ from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 import torchvision
 
+from PIL import Image
 from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, sobelLayer
 from data import get_training_set, get_test_set
 
 mse_criterion = torch.nn.MSELoss(reduction='mean')
 
+def tensor2img(tensor):
+    tensor = tensor.cpu()
+    tensor = tensor.detach().numpy()
+    tensor = np.squeeze(tensor)
+    tensor = np.moveaxis(tensor, 0, 2)
+    tensor = tensor * 255
+    tensor = tensor.clip(0, 255).astype(np.uint8)
+    
+    img = Image.fromarray(tensor)
+    return img
+
 def psnr(ground, compressed):
-    np_ground = np.array(ground, dtype='float')
-    np_compressed = np.array(compressed, dtype='float')
+    np_ground = np.array(tensor2img(ground), dtype='float')
+    np_compressed = np.array(tensor2img(compressed), dtype='float')
     mse = np.mean((np_ground - np_compressed)**2)
     psnr = np.log10(255**2/mse) * 10
     return psnr
