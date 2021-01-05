@@ -292,14 +292,20 @@ if __name__ == '__main__':
 
         # test
         avg_psnr = 0
+        max_psnr = 0
         for batch in testing_data_loader:
             input, target = batch[0].to(device), batch[1].to(device)
 
             prediction = net_g(input)
             # mse = criterionMSE(prediction, target)
             # psnr = 10 * log10(1 / mse.item())
-            avg_psnr += psnr(target, prediction)
+            peesneen = psnr(target, prediction)
+
+            max_psnr = max(max_psnr, peesneen)
+
+            avg_psnr += peesneen
         print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(testing_data_loader)))
+        print("===> Max PSNR: {:.4f} dB".format(max_psnr))
 
         #checkpoint
         if epoch % opt.epochsave == 0:
