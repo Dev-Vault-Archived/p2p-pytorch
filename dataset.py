@@ -1,7 +1,7 @@
 from os import listdir
 from os.path import join
 import random
-
+import numpy as np
 from PIL import Image
 import torch
 import torch.utils.data as data
@@ -30,6 +30,10 @@ class DatasetFromFolder(data.Dataset):
         b = Image.open(join(self.b_path, self.image_filenames[index])).convert('RGB')
         a = a.resize((286, 286), Image.BICUBIC)
         b = b.resize((286, 286), Image.BICUBIC)
+
+        assert not np.any(np.isnan(a))
+        assert not np.any(np.isnan(b))
+
         a = transforms.ToTensor()(a)
         b = transforms.ToTensor()(b)
         w_offset = random.randint(0, max(0, 286 - 256 - 1))
