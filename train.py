@@ -8,10 +8,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 import torchvision
 
+from utils import save_img
 from PIL import Image
 from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss
 from data import get_training_set, get_test_set
@@ -183,7 +185,14 @@ if __name__ == '__main__':
             # Masking real_a and fake_b
 
             # First, G(A) should fake the discriminator
-            fake_ab = torch.cat((real_a, np.bitwise_and(tensor2img(fake_b), tensor2img(real_a)).to(device)), 1)
+            masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
+            mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
+
+            # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
+            # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
+            # save_img(mask_image.detach().squeeze(0).cpu(), "mask.png")
+
+            fake_ab = torch.cat((real_a, mask_image), 1)
             pred_fake = net_d.forward(fake_ab)
             loss_g_gan = criterionGAN(pred_fake, True)
 
