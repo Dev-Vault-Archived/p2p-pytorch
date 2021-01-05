@@ -1,5 +1,6 @@
 import os
 import torch
+from  torch.nn.modules.upsampling import Upsample
 import numpy as np
 import argparse
 from torchvision.transforms import ToTensor
@@ -43,9 +44,26 @@ def crop(img_arr, block_size):
     h_splited = np.concatenate([np.hsplit(col, img_arr.shape[1]//w_b) for col in v_splited], 0)
     return h_splited
 
-def generate_patches(src_path, files, set_path, crop_size, img_format):
+def tensor2img(tensor):
+    tensor = tensor.cpu()
+    tensor = tensor.detach().numpy()
+    tensor = np.squeeze(tensor)
+    tensor = np.moveaxis(tensor, 0, 2)
+    tensor = tensor * 255
+    tensor = tensor.clip(0, 255).astype(np.uint8)
+    
+    img = Image.fromarray(tensor)
+    return img
+
+def generate_patches(src_path, files, set_path, crop_size, img_format, upsampling):
     img_path = os.path.join(src_path, files)
     img = Image.open(img_path).convert('RGB')
+
+    if upsampling > 0:
+        img = ToTensor()(img).unsqueeze_(0)
+        m = Upsample(scale_factor=abs(upsampling), mode='nearest')
+        img = m(img)
+        img = tensor2img(img)
 
     name, _ = files.split('.')
     filedir = os.path.join(set_path, 'a')
@@ -79,7 +97,7 @@ def generate_patches(src_path, files, set_path, crop_size, img_format):
             os.path.join(filedirb, '{}_{}.{}'.format(name, i, img_format))
         )
 
-def main(target_dataset_folder, dataset_path, bit_size, pool_size, crop_size, img_format):
+def main(target_dataset_folder, dataset_path, bit_size, pool_size, crop_size, img_format, upsampling):
     print('[ Creating Dataset ]')
     print('Crop Size : {}'.format(crop_size))
     print('Target       : {}'.format(target_dataset_folder))
@@ -100,13 +118,13 @@ def main(target_dataset_folder, dataset_path, bit_size, pool_size, crop_size, im
 
     pool = Pool(pool_size)
     for files in img_files:
-        # generate_patches(src_path, files, set_path, crop_size, img_format)
+        # generate_patches(src_path, files, set_path, crop_size, img_format, upsampling)
         res = pool.apply_async(
             generate_patches,
-            args=(src_path, files, set_path, crop_size, img_format)
+            args=(src_path, files, set_path, crop_size, img_format, upsampling)
         )
         print(res)
-        # break
+        break
     
     pool.close()
     pool.join()
@@ -121,8 +139,9 @@ if __name__ == '__main__':
     parser.add_argument('--pool_size', type=int, help='target folder where image saved')
     parser.add_argument('--crop_size', type=int, help='crop size, -1 to save whole images')
     parser.add_argument('--img_format', type=str, help='image format e.g. png')
+    parser.add_argument('--upsampling', type=int, default=0, help='image format e.g. png')
     
     args = parser.parse_args()
 
     crop_size = [args.crop_size, args.crop_size] if args.crop_size > 0 else None 
-    main(args.target_dataset_folder, args.dataset_path, args.bit_size, args.pool_size, crop_size, args.img_format)
+    main(args.target_dataset_folder, args.dataset_path, args.bit_size, args.pool_size, crop_size, args.img_format, args.upsampling)
