@@ -66,30 +66,18 @@ def generate_patches(src_path, files, set_path, crop_size, img_format):
         img = img[:h-rem_h, :w-rem_w]
         img_patches = crop(img, crop_size)
     
-    img = Image.fromarray(img_patches[0])
-    # print(np.asarray(compress(torch.Tensor(img_patches[0]), 4) * (2**4 - 1)))
-    imgs = tensor2img(compress(ToTensor()(img_patches[0]), 3))
+    for i in range(min(len(img_patches), 3)):
+        img = Image.fromarray(img_patches[i])
+        # print(np.asarray(compress(torch.Tensor(img_patches[0]), 4) * (2**4 - 1)))
+        imgs = tensor2img(compress(ToTensor()(img_patches[i]), 3))
 
-    img.save(
-        os.path.join(filedir, '{}.{}'.format(name, img_format))
-    )
-    # print('OK')
-    imgs.save(
-        os.path.join(filedirb, '{}_{}.{}'.format(name, img_format))
-    )
-
-    # for i in range(min(len(img_patches), 3)):
-    #     img = Image.fromarray(img_patches[i])
-    #     # print(np.asarray(compress(torch.Tensor(img_patches[0]), 4) * (2**4 - 1)))
-    #     imgs = tensor2img(compress(ToTensor()(img_patches[i]), 3))
-
-    #     img.save(
-    #         os.path.join(filedir, '{}_{}.{}'.format(name, i, img_format))
-    #     )
-    #     # print('OK')
-    #     imgs.save(
-    #         os.path.join(filedirb, '{}_{}.{}'.format(name, i, img_format))
-    #     )
+        img.save(
+            os.path.join(filedir, '{}_{}.{}'.format(name, i, img_format))
+        )
+        # print('OK')
+        imgs.save(
+            os.path.join(filedirb, '{}_{}.{}'.format(name, i, img_format))
+        )
 
 def main(target_dataset_folder, dataset_path, bit_size, pool_size, crop_size, img_format):
     print('[ Creating Dataset ]')
