@@ -147,7 +147,12 @@ if __name__ == '__main__':
     for epoch in range(opt.epoch_count, num_epoch):
         # train
         bar = tqdm(enumerate(training_data_loader, 1))
+        data_len = len(training_data_loader)
         for iteration, batch in bar:
+            # Iteration bug?
+            if iteration in [112]:
+                continue
+
             # forward
             real_a, real_b = batch[0].to(device), batch[1].to(device)
 
@@ -241,8 +246,9 @@ if __name__ == '__main__':
 
             optimizer_g.step()
             
-            bar.set_description(desc='itr: %d [%3d/%3d] [D Loss: %.6f] [G Loss: %.6f] [GFeat Loss: %.6f] [Ang Loss: %.6f] [Perp Loss: %.6f] [Style Loss: %.6f] [TV Loss: %.6f]' %(
-                (epoch - 1) + iteration,
+            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D Loss: %.6f] [G Loss: %.6f] [GFeat Loss: %.6f] [Ang Loss: %.6f] [Perp Loss: %.6f] [Style Loss: %.6f] [TV Loss: %.6f]' %(
+                iteration,
+                data_len,
                 epoch,
                 num_epoch,
                 loss_d.item(),
