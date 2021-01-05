@@ -149,12 +149,14 @@ if __name__ == '__main__':
         bar = tqdm(enumerate(training_data_loader, 1))
         data_len = len(training_data_loader)
         for iteration, batch in bar:
-            # Iteration bug?
-            if iteration in [112]:
-                continue
 
             # forward
             real_a, real_b = batch[0].to(device), batch[1].to(device)
+            
+            # Iteration bug?
+            if iteration in [112]:
+                save_img(real_a.detach().squeeze(0).cpu(), 'realabug.png')
+                save_img(real_b.detach().squeeze(0).cpu(), 'realbbug.png')
 
             # Generate fake real image
             fake_b = net_g(real_a)
