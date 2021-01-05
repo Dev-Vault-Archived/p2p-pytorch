@@ -251,7 +251,8 @@ if __name__ == '__main__':
                 loss_d.item(),
                 loss_g.item(),
                 loss_G_GAN_Feat.item(),
-                loss_G_Ang.item(),
+                # loss_G_Ang.item(),
+                0,
                 content_loss.item(),
                 style_loss.item(),
                 tv_loss.item()
