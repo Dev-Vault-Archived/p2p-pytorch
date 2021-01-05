@@ -9,6 +9,8 @@ import torchvision.transforms as transforms
 
 from utils import is_image_file, load_img
 
+IMAGENET_MEAN = (0.485, 0.456, 0.406)
+IMAGENET_STD = (0.229, 0.224, 0.225)
 
 class DatasetFromFolder(data.Dataset):
     def __init__(self, image_dir, direction):
@@ -19,7 +21,7 @@ class DatasetFromFolder(data.Dataset):
         self.image_filenames = [x for x in listdir(self.a_path) if is_image_file(x)]
 
         transform_list = [transforms.ToTensor(),
-                          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+                          transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD)]
 
         self.transform = transforms.Compose(transform_list)
 
@@ -36,8 +38,8 @@ class DatasetFromFolder(data.Dataset):
         a = a[:, h_offset:h_offset + 256, w_offset:w_offset + 256]
         b = b[:, h_offset:h_offset + 256, w_offset:w_offset + 256]
     
-        a = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(a)
-        b = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(b)
+        a = transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD)(a)
+        b = transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD)(b)
 
         if random.random() < 0.5:
             idx = [i for i in range(a.size(2) - 1, -1, -1)]
