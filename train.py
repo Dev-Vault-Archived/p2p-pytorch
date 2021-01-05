@@ -297,6 +297,11 @@ if __name__ == '__main__':
             input, target = batch[0].to(device), batch[1].to(device)
 
             prediction = net_g(input)
+
+            save_img(input.detach().squeeze(0).cpu(), "in.png")
+            save_img(target.detach().squeeze(0).cpu(), "tar.png")
+            save_img(prediction.detach().squeeze(0).cpu(), "pred.png")
+
             # mse = criterionMSE(prediction, target)
             # psnr = 10 * log10(1 / mse.item())
             peesneen = psnr(target, prediction)
