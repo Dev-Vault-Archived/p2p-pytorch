@@ -190,14 +190,14 @@ if __name__ == '__main__':
             # Masking real_a and fake_b
 
             # First, G(A) should fake the discriminator
-            masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
-            mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
+            # masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
+            # mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
 
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
             # save_img(mask_image.detach().squeeze(0).cpu(), "mask.png")
 
-            fake_ab = torch.cat((real_a, mask_image), 1)
+            fake_ab = torch.cat((real_a, fake_b), 1)
             pred_fake = net_d.forward(fake_ab)
             loss_g_gan = criterionGAN(pred_fake, True)
 
@@ -228,17 +228,16 @@ if __name__ == '__main__':
 
             # Perceptual loss
             target_content_features = extract_features(criterionVGG, real_b, [15])
-            # target_style_features = extract_features(criterionVGG, real_a, [3, 8, 15, 22]) 
+            target_style_features = extract_features(criterionVGG, real_a, [3, 8, 15, 22]) 
 
             output_content_features = extract_features(criterionVGG, fake_b, [15])
-            # output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
+            output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
 
-            # style_loss = calc_Gram_Loss(output_style_features, target_style_features)
+            style_loss = calc_Gram_Loss(output_style_features, target_style_features)
             content_loss = calc_c_loss(output_content_features, target_content_features)
             tv_loss = calc_tv_Loss(fake_b)
 
-            # loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 30.0
-            loss_g += content_loss * 1.0 + tv_loss * 1.0
+            loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 30.0
             
             loss_g.backward()
 
@@ -254,8 +253,7 @@ if __name__ == '__main__':
                 loss_G_GAN_Feat.item(),
                 loss_G_Ang.item(),
                 content_loss.item(),
-                # style_loss.item(),
-                0,
+                style_loss.item(),
                 tv_loss.item()
             ))
             # print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f} Loss_GFeat: {:.4f} Loss_Sobel: {:.4f} Loss_Perp: {:.4f} Loss_TV: {:.4f}".format(
