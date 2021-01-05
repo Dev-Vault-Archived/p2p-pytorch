@@ -123,8 +123,8 @@ def main(target_dataset_folder, dataset_path, bit_size, pool_size, crop_size, im
             generate_patches,
             args=(src_path, files, set_path, crop_size, img_format, upsampling)
         )
-        print(res)
-        break
+        # print(res)
+        # break
     
     pool.close()
     pool.join()
