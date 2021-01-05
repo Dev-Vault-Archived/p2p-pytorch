@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 import torchvision
 
-from utils import save_img
+# from utils import save_img
 from PIL import Image
 from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss
 from data import get_training_set, get_test_set
