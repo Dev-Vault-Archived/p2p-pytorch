@@ -76,6 +76,9 @@ def calc_tv_Loss(x):
     return tv_loss
 
 if __name__ == '__main__':
+
+    torch.autograd.set_detect_anomaly(True)
+
     # Training settings
     parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
     parser.add_argument('--dataset', required=True, help='facades')
