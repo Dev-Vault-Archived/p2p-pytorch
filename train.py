@@ -100,6 +100,7 @@ if __name__ == '__main__':
     parser.add_argument('--threads', type=int, default=4, help='number of threads for data loader to use')
     parser.add_argument('--seed', type=int, default=123, help='random seed to use. Default=123')
     parser.add_argument('--lamb', type=int, default=10, help='weight on L1 term in objective')
+    parser.add_argument('--epochsave', type=int, default=50, help='test')
     opt = parser.parse_args()
 
     print(opt)
@@ -280,7 +281,7 @@ if __name__ == '__main__':
         print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(testing_data_loader)))
 
         #checkpoint
-        if epoch % 50 == 0:
+        if epoch % opt.epochsave == 0:
             if not os.path.exists("checkpoint"):
                 os.mkdir("checkpoint")
             if not os.path.exists(os.path.join("checkpoint", opt.dataset)):
