@@ -271,13 +271,13 @@ if __name__ == '__main__':
                 data_len,
                 epoch,
                 num_epoch,
-                sum_d_loss/min(1, iteration),
-                sum_g_loss/min(1, iteration),
-                sum_g_loss/min(1, iteration),
-                sum_angular_loss/min(1, iteration),
-                sum_perp_loss/min(1, iteration),
-                sum_style_loss/min(1, iteration),
-                sum_tv_loss/min(1, iteration)
+                sum_d_loss/max(1, iteration),
+                sum_g_loss/max(1, iteration),
+                sum_g_loss/max(1, iteration),
+                sum_angular_loss/max(1, iteration),
+                sum_perp_loss/max(1, iteration),
+                sum_style_loss/max(1, iteration),
+                sum_tv_loss/max(1, iteration)
             ))
             # print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f} Loss_GFeat: {:.4f} Loss_Sobel: {:.4f} Loss_Perp: {:.4f} Loss_TV: {:.4f}".format(
                 # epoch, iteration, len(training_data_loader), loss_d.item(), loss_g.item(), loss_G_GAN_Feat.item(), loss_sobelL1.item(), content_loss.item(), tv_loss.item()))
