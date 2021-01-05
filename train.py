@@ -213,7 +213,7 @@ if __name__ == '__main__':
 
             eps = torch.tensor(1e-04).to(device)
             illum_gt = torch.div(real_a, torch.max(real_b, eps))
-            illum_pred = torch.div(real_a, torch.max(real_b, eps))
+            illum_pred = torch.div(real_a, torch.max(fake_b, eps))
             loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1
 
             loss_g += loss_G_Ang
