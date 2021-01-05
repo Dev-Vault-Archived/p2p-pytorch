@@ -229,17 +229,18 @@ if __name__ == '__main__':
 
             # Perceptual loss
             # target_content_features = extract_features(criterionVGG, real_b, [15])
-            # target_style_features = extract_features(criterionVGG, real_a, [3, 8, 15, 22]) 
+            target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
 
             # output_content_features = extract_features(criterionVGG, fake_b, [15])
-            # output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
+            output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
 
-            # style_loss = calc_Gram_Loss(output_style_features, target_style_features)
+            style_loss = calc_Gram_Loss(output_style_features, target_style_features)
             # content_loss = calc_c_loss(output_content_features, target_content_features)
             # tv_loss = calc_tv_Loss(fake_b)
 
             # loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 30.0
-            
+            loss_g += style_loss * 10.0
+
             loss_g.backward()
 
             optimizer_g.step()
@@ -253,7 +254,9 @@ if __name__ == '__main__':
                 loss_g.item(),
                 loss_G_GAN_Feat.item(),
                 loss_G_Ang.item(),
-                0, 0, 0
+                0,
+                style_loss.item(),
+                0,
                 # content_loss.item(),
                 # style_loss.item(),
                 # tv_loss.item()
