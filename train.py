@@ -183,7 +183,7 @@ if __name__ == '__main__':
             # Masking real_a and fake_b
 
             # First, G(A) should fake the discriminator
-            fake_ab = torch.cat((real_a, np.bitwise_and(fake_b.cpu().numpy(), real_a.cpu().numpy()).to(device)), 1)
+            fake_ab = torch.cat((real_a, np.bitwise_and(fake_b.cpu().detach().numpy(), real_a.cpu().detach().numpy()).to(device)), 1)
             pred_fake = net_d.forward(fake_ab)
             loss_g_gan = criterionGAN(pred_fake, True)
 
