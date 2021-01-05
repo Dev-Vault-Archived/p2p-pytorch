@@ -237,7 +237,7 @@ if __name__ == '__main__':
             content_loss = calc_c_loss(output_content_features, target_content_features)
             tv_loss = calc_tv_Loss(fake_b)
 
-            loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 30.0
+            loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 1.0
             
             loss_g.backward()
 
