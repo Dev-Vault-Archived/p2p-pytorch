@@ -149,6 +149,19 @@ if __name__ == '__main__':
         # train
         bar = tqdm(enumerate(training_data_loader, 1))
         data_len = len(training_data_loader)
+
+        # losses sum
+        sum_d_loss = 0
+        sum_g_loss = 0
+
+        sum_gfeat_loss = 0
+
+        sum_angular_loss = 0
+
+        sum_perp_loss = 0
+        sum_style_loss = 0
+        sum_tv_loss = 0
+
         for iteration, batch in bar:
 
             # forward
@@ -245,18 +258,26 @@ if __name__ == '__main__':
 
             optimizer_g.step()
             
+            sum_d_loss += loss_d.item()
+            sum_g_loss += loss_g.item()
+            sum_gfeat_loss += loss_G_GAN_Feat.item()
+            sum_angular_loss += loss_G_Ang.item()
+            sum_perp_loss += content_loss.item()
+            sum_style_loss += style_loss.item()
+            sum_tv_loss += tv_loss.item()
+
             bar.set_description(desc='itr: %d/%d [%3d/%3d] [D Loss: %.6f] [G Loss: %.6f] [GFeat Loss: %.6f] [Ang Loss: %.6f] [Perp Loss: %.6f] [Style Loss: %.6f] [TV Loss: %.6f]' %(
                 iteration,
                 data_len,
                 epoch,
                 num_epoch,
-                loss_d.item(),
-                loss_g.item(),
-                loss_G_GAN_Feat.item(),
-                loss_G_Ang.item(),
-                content_loss.item(),
-                style_loss.item(),
-                tv_loss.item()
+                sum_d_loss/min(1, iteration),
+                sum_g_loss/min(1, iteration),
+                sum_g_loss/min(1, iteration),
+                sum_angular_loss/min(1, iteration),
+                sum_perp_loss/min(1, iteration),
+                sum_style_loss/min(1, iteration),
+                sum_tv_loss/min(1, iteration)
             ))
             # print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f} Loss_GFeat: {:.4f} Loss_Sobel: {:.4f} Loss_Perp: {:.4f} Loss_TV: {:.4f}".format(
                 # epoch, iteration, len(training_data_loader), loss_d.item(), loss_g.item(), loss_G_GAN_Feat.item(), loss_sobelL1.item(), content_loss.item(), tv_loss.item()))
