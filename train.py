@@ -216,12 +216,12 @@ if __name__ == '__main__':
             
             loss_g = loss_g_gan + loss_G_GAN_Feat
 
-            eps = torch.tensor(1e-04).to(device)
-            illum_gt = torch.div(real_a, torch.max(real_b, eps))
-            illum_pred = torch.div(real_a, torch.max(fake_b, eps))
-            loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1
+            # eps = torch.tensor(1e-04).to(device)
+            # illum_gt = torch.div(real_a, torch.max(real_b, eps))
+            # illum_pred = torch.div(real_a, torch.max(fake_b, eps))
+            # loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1
 
-            loss_g += loss_G_Ang
+            # loss_g += loss_G_Ang
 
             # loss_sobelL1 = criterionFeat(fake_sobel, real_sobel) * sobelLambda
             # loss_g += loss_sobelL1
