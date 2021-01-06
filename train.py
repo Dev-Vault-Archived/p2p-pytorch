@@ -15,7 +15,7 @@ import torchvision
 
 # from utils import save_img
 from PIL import Image
-from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss
+from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss, sobelLayer
 from data import get_training_set, get_test_set
 
 mse_criterion = torch.nn.MSELoss(reduction='mean')
@@ -129,7 +129,7 @@ if __name__ == '__main__':
 
     print('===> Building models')
 
-    # sobelLambda = 0
+    sobelLambda = 0
 
     net_g = define_G('normal', 0.02, gpu_id=device)
     net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, gpu_id=device)
@@ -161,7 +161,8 @@ if __name__ == '__main__':
 
         sum_gfeat_loss = 0
 
-        sum_angular_loss = 0
+        # sum_angular_loss = 0
+        sum_sobel_loss = 0
 
         sum_perp_loss = 0
         sum_style_loss = 0
@@ -182,14 +183,14 @@ if __name__ == '__main__':
             # Train discriminator with with fake image and loss
 
             # sobel layer
-            # fake_sobel = sobelLayer(fake_b, gpu_id=device)
+            fake_sobel = sobelLayer(fake_b, gpu_id=device)
 
             fake_ab = torch.cat((real_a, fake_b), 1)
             pred_fake = net_d.forward(fake_ab.detach())
             loss_d_fake = criterionGAN(pred_fake, False)
 
             # Train discriminator with real image and loss
-            # real_sobel = sobelLayer(real_b, gpu_id=device).detach()
+            real_sobel = sobelLayer(real_b, gpu_id=device).detach()
 
             real_ab = torch.cat((real_a, real_b), 1)
             pred_real = net_d.forward(real_ab)
@@ -235,15 +236,15 @@ if __name__ == '__main__':
             
             loss_g = loss_g_gan + loss_G_GAN_Feat
 
-            eps = torch.tensor(1e-04).to(device)
-            illum_gt = torch.div(real_a, torch.max(real_b, eps))
-            illum_pred = torch.div(real_a, torch.max(fake_b, eps))
-            loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1
+            # eps = torch.tensor(1e-04).to(device)
+            # illum_gt = torch.div(real_a, torch.max(real_b, eps))
+            # illum_pred = torch.div(real_a, torch.max(fake_b, eps))
+            # loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1
 
-            loss_g += loss_G_Ang
+            # loss_g += loss_G_Ang
 
-            # loss_sobelL1 = criterionFeat(fake_sobel, real_sobel) * sobelLambda
-            # loss_g += loss_sobelL1
+            loss_sobelL1 = criterionFeat(fake_sobel, real_sobel) * sobelLambda
+            loss_g += loss_sobelL1
 
             # Perceptual loss
             target_content_features = extract_features(criterionVGG, real_b, [15])
@@ -267,14 +268,15 @@ if __name__ == '__main__':
             sum_d_loss += loss_d.item()
             sum_g_loss += loss_g_gan.item()
             sum_gfeat_loss += loss_G_GAN_Feat.item()
-            sum_angular_loss += loss_G_Ang.item()
+            # sum_angular_loss += loss_G_Ang.item()
+            sum_sobel_loss += loss_sobelL1.item()
             sum_perp_loss += content_loss.item()
             sum_style_loss += style_loss.item()
             sum_tv_loss += tv_loss.item()
 
             sum_tot_g_loss += loss_g.item()
 
-            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [A: %.6f] [P: %.6f] [S: %.6f] [T: %.6f] [Tot: %.6f]' %(
+            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [Sob: %.6f] [P: %.6f] [S: %.6f] [T: %.6f] [Tot: %.6f]' %(
                 iteration,
                 data_len,
                 epoch,
@@ -282,22 +284,24 @@ if __name__ == '__main__':
                 sum_d_loss/max(1, iteration),
                 sum_g_loss/max(1, iteration),
                 sum_gfeat_loss/max(1, iteration),
-                sum_angular_loss/max(1, iteration),
+                # sum_angular_loss/max(1, iteration),
+                sum_sobel_loss/max(1, sum_sobel_loss),
                 sum_perp_loss/max(1, iteration),
                 sum_style_loss/max(1, iteration),
                 sum_tv_loss/max(1, iteration),
                 sum_tot_g_loss/max(1, iteration),
             ))
+
             # print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f} Loss_GFeat: {:.4f} Loss_Sobel: {:.4f} Loss_Perp: {:.4f} Loss_TV: {:.4f}".format(
                 # epoch, iteration, len(training_data_loader), loss_d.item(), loss_g.item(), loss_G_GAN_Feat.item(), loss_sobelL1.item(), content_loss.item(), tv_loss.item()))
 
         update_learning_rate(net_g_scheduler, optimizer_g)
         update_learning_rate(net_d_scheduler, optimizer_d)
 
-        # if epoch <= 20:
-        #     sobelLambda = 100/20*epoch
+        if epoch <= 20:
+            sobelLambda = 100/20*epoch
 
-        #     print('Update sobel lambda: %f' % (sobelLambda))
+            print('Update sobel lambda: %f' % (sobelLambda))
 
         # test
         avg_psnr = 0
