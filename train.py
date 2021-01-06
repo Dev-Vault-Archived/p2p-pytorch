@@ -285,7 +285,7 @@ if __name__ == '__main__':
                 sum_g_loss/max(1, iteration),
                 sum_gfeat_loss/max(1, iteration),
                 # sum_angular_loss/max(1, iteration),
-                sum_sobel_loss/max(1, sum_sobel_loss),
+                sum_sobel_loss/max(1, iteration),
                 sum_perp_loss/max(1, iteration),
                 sum_style_loss/max(1, iteration),
                 sum_tv_loss/max(1, iteration),
