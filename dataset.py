@@ -9,8 +9,8 @@ import torchvision.transforms as transforms
 
 from utils import is_image_file, load_img
 
-IMAGENET_MEAN = (0.485, 0.456, 0.406)
-IMAGENET_STD = (0.229, 0.224, 0.225)
+IMAGENET_MEAN = (0.5, 0.5, 0.5)
+IMAGENET_STD = (0.5, 0.5, 0.5)
 
 class DatasetFromFolder(data.Dataset):
     def __init__(self, image_dir, direction):

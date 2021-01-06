@@ -40,6 +40,10 @@ def psnr(ground, compressed):
 
 def extract_features(model, x, layers):
     features = list()
+
+    # normalize image to match vgg network
+    x = transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))(x)
+
     for index, layer in enumerate(model):
         x = layer(x)
         if index in layers:
@@ -136,7 +140,7 @@ if __name__ == '__main__':
     # criterionMSE = nn.MSELoss().to(device)
     criterionAngular = angular_loss().to(device)
 
-    criterionVGG = torchvision.models.vgg19(pretrained=True).features.to(device)
+    criterionVGG = torchvision.models.vgg16(pretrained=True).features.to(device)
 
     # setup optimizer
     optimizer_g = optim.Adam(net_g.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -153,6 +157,7 @@ if __name__ == '__main__':
         # losses sum
         sum_d_loss = 0
         sum_g_loss = 0
+        sum_tot_g_loss = 0
 
         sum_gfeat_loss = 0
 
@@ -242,17 +247,17 @@ if __name__ == '__main__':
 
             # Perceptual loss
             target_content_features = extract_features(criterionVGG, real_b, [15])
-            # target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
+            target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
 
             output_content_features = extract_features(criterionVGG, fake_b, [15])
-            # output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
+            output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
 
-            # style_loss = calc_Gram_Loss(output_style_features, target_style_features)
+            style_loss = calc_Gram_Loss(output_style_features, target_style_features)
             content_loss = calc_c_loss(output_content_features, target_content_features)
             tv_loss = calc_tv_Loss(fake_b)
 
-            loss_g += content_loss * 1.0 + tv_loss * 1.0
-            # loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 10.0
+            # loss_g += content_loss * 1.0 + tv_loss * 1.0
+            loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 30.0
             # loss_g += style_loss * 10.0
 
             loss_g.backward()
@@ -260,25 +265,28 @@ if __name__ == '__main__':
             optimizer_g.step()
             
             sum_d_loss += loss_d.item()
-            sum_g_loss += loss_g.item()
+            sum_g_loss += loss_g_gan.item()
             sum_gfeat_loss += loss_G_GAN_Feat.item()
             sum_angular_loss += loss_G_Ang.item()
             sum_perp_loss += content_loss.item()
-            # sum_style_loss += style_loss.item()
+            sum_style_loss += style_loss.item()
             sum_tv_loss += tv_loss.item()
 
-            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D Loss: %.6f] [G Loss: %.6f] [GFeat Loss: %.6f] [Ang Loss: %.6f] [Perp Loss: %.6f] [Style Loss: %.6f] [TV Loss: %.6f]' %(
+            sum_tot_g_loss += loss_g.item()
+
+            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [A: %.6f] [P: %.6f] [S: %.6f] [T: %.6f] [Tot: %.6f]' %(
                 iteration,
                 data_len,
                 epoch,
                 num_epoch,
                 sum_d_loss/max(1, iteration),
                 sum_g_loss/max(1, iteration),
-                sum_g_loss/max(1, iteration),
+                sum_gfeat_loss/max(1, iteration),
                 sum_angular_loss/max(1, iteration),
                 sum_perp_loss/max(1, iteration),
                 sum_style_loss/max(1, iteration),
-                sum_tv_loss/max(1, iteration)
+                sum_tv_loss/max(1, iteration),
+                sum_tot_g_loss/max(1, iteration),
             ))
             # print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f} Loss_GFeat: {:.4f} Loss_Sobel: {:.4f} Loss_Perp: {:.4f} Loss_TV: {:.4f}".format(
                 # epoch, iteration, len(training_data_loader), loss_d.item(), loss_g.item(), loss_G_GAN_Feat.item(), loss_sobelL1.item(), content_loss.item(), tv_loss.item()))
@@ -286,10 +294,10 @@ if __name__ == '__main__':
         update_learning_rate(net_g_scheduler, optimizer_g)
         update_learning_rate(net_d_scheduler, optimizer_d)
 
-        if epoch <= 20:
-            sobelLambda = 100/20*epoch
+        # if epoch <= 20:
+        #     sobelLambda = 100/20*epoch
 
-            print('Update sobel lambda: %f' % (sobelLambda))
+        #     print('Update sobel lambda: %f' % (sobelLambda))
 
         # test
         avg_psnr = 0
