@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
         sum_gfeat_loss = 0
 
-        sum_angular_loss = 0
+        # sum_angular_loss = 0
 
         sum_perp_loss = 0
         sum_style_loss = 0
@@ -230,12 +230,12 @@ if __name__ == '__main__':
             
             loss_g = loss_g_gan + loss_G_GAN_Feat
 
-            eps = torch.tensor(1e-04).to(device)
-            illum_gt = torch.div(real_a, torch.max(real_b, eps))
-            illum_pred = torch.div(real_a, torch.max(fake_b, eps))
-            loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1
+            # eps = torch.tensor(1e-04).to(device)
+            # illum_gt = torch.div(real_a, torch.max(real_b, eps))
+            # illum_pred = torch.div(real_a, torch.max(fake_b, eps))
+            # loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1
 
-            loss_g += loss_G_Ang
+            # loss_g += loss_G_Ang
 
             # loss_sobelL1 = criterionFeat(fake_sobel, real_sobel) * sobelLambda
             # loss_g += loss_sobelL1
@@ -251,7 +251,7 @@ if __name__ == '__main__':
             content_loss = calc_c_loss(output_content_features, target_content_features)
             tv_loss = calc_tv_Loss(fake_b)
 
-            loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 10.0
+            loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 30.0
             # loss_g += style_loss * 10.0
 
             loss_g.backward()
@@ -261,7 +261,7 @@ if __name__ == '__main__':
             sum_d_loss += loss_d.item()
             sum_g_loss += loss_g.item()
             sum_gfeat_loss += loss_G_GAN_Feat.item()
-            sum_angular_loss += loss_G_Ang.item()
+            # sum_angular_loss += loss_G_Ang.item()
             sum_perp_loss += content_loss.item()
             sum_style_loss += style_loss.item()
             sum_tv_loss += tv_loss.item()
@@ -274,7 +274,8 @@ if __name__ == '__main__':
                 sum_d_loss/max(1, iteration),
                 sum_g_loss/max(1, iteration),
                 sum_g_loss/max(1, iteration),
-                sum_angular_loss/max(1, iteration),
+                # sum_angular_loss/max(1, iteration),
+                0,
                 sum_perp_loss/max(1, iteration),
                 sum_style_loss/max(1, iteration),
                 sum_tv_loss/max(1, iteration)
