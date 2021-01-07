@@ -15,7 +15,7 @@ import torchvision
 
 # from utils import save_img
 from PIL import Image
-from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss, sobelLayer
+from networks import VGGPerceptualLoss, define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss, sobelLayer
 from data import get_training_set, get_test_set
 
 mse_criterion = torch.nn.MSELoss(reduction='mean')
@@ -38,46 +38,46 @@ def psnr(ground, compressed):
     psnr = np.log10(255**2/mse) * 10
     return psnr
 
-def extract_features(model, x, layers):
-    features = list()
+# def extract_features(model, x, layers):
+#     features = list()
 
-    # normalize image to match vgg network
-    x = transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))(x)
+#     # normalize image to match vgg network
+#     x = transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))(x)
 
-    for index, layer in enumerate(model):
-        x = layer(x)
-        if index in layers:
-            features.append(x)
-    return features
+#     for index, layer in enumerate(model):
+#         x = layer(x)
+#         if index in layers:
+#             features.append(x)
+#     return features
 
-def gram(x):
-    b ,c, h, w = x.size()
-    g = torch.bmm(x.view(b, c, h*w), x.view(b, c, h*w).transpose(1,2))
-    return g.div(h*w)
+# def gram(x):
+#     b ,c, h, w = x.size()
+#     g = torch.bmm(x.view(b, c, h*w), x.view(b, c, h*w).transpose(1,2))
+#     return g.div(h*w)
 
-def calc_Gram_Loss(features, targets, weights=None):
-    if weights is None:
-        weights = [1/len(features)] * len(features)
+# def calc_Gram_Loss(features, targets, weights=None):
+#     if weights is None:
+#         weights = [1/len(features)] * len(features)
         
-    gram_loss = 0
-    for f, t, w in zip(features, targets, weights):
-        gram_loss += mse_criterion(gram(f), gram(t)) * w
-    return gram_loss
+#     gram_loss = 0
+#     for f, t, w in zip(features, targets, weights):
+#         gram_loss += mse_criterion(gram(f), gram(t)) * w
+#     return gram_loss
 
-def calc_c_loss(features, targets, weights=None):
-    if weights is None:
-        weights = [1/len(features)] * len(features)
+# def calc_c_loss(features, targets, weights=None):
+#     if weights is None:
+#         weights = [1/len(features)] * len(features)
     
-    content_loss = 0
-    for f, t, w in zip(features, targets, weights):
-        content_loss += mse_criterion(f, t) * w
+#     content_loss = 0
+#     for f, t, w in zip(features, targets, weights):
+#         content_loss += mse_criterion(f, t) * w
         
-    return content_loss
+#     return content_loss
 
-def calc_tv_Loss(x):
-    tv_loss = torch.mean(torch.abs(x[:, :, :, :-1] - x[:, :, :, 1:]))
-    tv_loss += torch.mean(torch.abs(x[:, :, :-1, :] - x[:, :, 1:, :]))
-    return tv_loss
+# def calc_tv_Loss(x):
+#     tv_loss = torch.mean(torch.abs(x[:, :, :, :-1] - x[:, :, :, 1:]))
+#     tv_loss += torch.mean(torch.abs(x[:, :, :-1, :] - x[:, :, 1:, :]))
+#     return tv_loss
 
 if __name__ == '__main__':
 
@@ -129,7 +129,7 @@ if __name__ == '__main__':
 
     print('===> Building models')
 
-    sobelLambda = 0
+    # sobelLambda = 0
 
     net_g = define_G('normal', 0.02, gpu_id=device)
     net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, gpu_id=device)
@@ -140,7 +140,8 @@ if __name__ == '__main__':
     # criterionMSE = nn.MSELoss().to(device)
     criterionAngular = angular_loss().to(device)
 
-    criterionVGG = torchvision.models.vgg16(pretrained=True).features.to(device)
+    # criterionVGG = torchvision.models.vgg16(pretrained=True).features.to(device)
+    criterionVGG = VGGPerceptualLoss(resize=True)
 
     # setup optimizer
     optimizer_g = optim.Adam(net_g.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -161,12 +162,12 @@ if __name__ == '__main__':
 
         sum_gfeat_loss = 0
 
-        # sum_angular_loss = 0
-        sum_sobel_loss = 0
+        sum_angular_loss = 0
+        # sum_sobel_loss = 0
 
         sum_perp_loss = 0
-        sum_style_loss = 0
-        sum_tv_loss = 0
+        # sum_style_loss = 0
+        # sum_tv_loss = 0
 
         for iteration, batch in bar:
 
@@ -183,14 +184,14 @@ if __name__ == '__main__':
             # Train discriminator with with fake image and loss
 
             # sobel layer
-            fake_sobel = sobelLayer(fake_b, gpu_id=device)
+            # fake_sobel = sobelLayer(fake_b, gpu_id=device)
 
             fake_ab = torch.cat((real_a, fake_b), 1)
             pred_fake = net_d.forward(fake_ab.detach())
             loss_d_fake = criterionGAN(pred_fake, False)
 
             # Train discriminator with real image and loss
-            real_sobel = sobelLayer(real_b, gpu_id=device).detach()
+            # real_sobel = sobelLayer(real_b, gpu_id=device).detach()
 
             real_ab = torch.cat((real_a, real_b), 1)
             pred_real = net_d.forward(real_ab)
@@ -210,14 +211,14 @@ if __name__ == '__main__':
             # Masking real_a and fake_b
 
             # First, G(A) should fake the discriminator
-            # masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
-            # mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
+            masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
+            mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
 
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
             # save_img(mask_image.detach().squeeze(0).cpu(), "mask.png")
 
-            fake_ab = torch.cat((real_a, fake_b), 1)
+            fake_ab = torch.cat((real_a, mask_image), 1)
             pred_fake = net_d.forward(fake_ab)
             loss_g_gan = criterionGAN(pred_fake, True)
 
@@ -236,29 +237,32 @@ if __name__ == '__main__':
             
             loss_g = loss_g_gan + loss_G_GAN_Feat
 
-            # eps = torch.tensor(1e-04).to(device)
-            # illum_gt = torch.div(real_a, torch.max(real_b, eps))
-            # illum_pred = torch.div(real_a, torch.max(fake_b, eps))
-            # loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1
+            eps = torch.tensor(1e-04).to(device)
+            illum_gt = torch.div(real_a, torch.max(real_b, eps))
+            illum_pred = torch.div(real_a, torch.max(fake_b, eps))
+            loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1
 
-            # loss_g += loss_G_Ang
+            loss_g += loss_G_Ang
 
-            loss_sobelL1 = criterionFeat(fake_sobel, real_sobel) * sobelLambda
-            loss_g += loss_sobelL1
+            # loss_sobelL1 = criterionFeat(fake_sobel, real_sobel) * sobelLambda
+            # loss_g += loss_sobelL1
 
             # Perceptual loss
-            target_content_features = extract_features(criterionVGG, real_b, [15])
-            target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
+            perp_loss = criterionVGG(fake_b, real_b)
 
-            output_content_features = extract_features(criterionVGG, fake_b, [15])
-            output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
+            loss_g += perp_loss
+            # target_content_features = extract_features(criterionVGG, real_b, [15])
+            # target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
 
-            style_loss = calc_Gram_Loss(output_style_features, target_style_features)
-            content_loss = calc_c_loss(output_content_features, target_content_features)
-            tv_loss = calc_tv_Loss(fake_b)
+            # output_content_features = extract_features(criterionVGG, fake_b, [15])
+            # output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
 
-            # loss_g += content_loss * 1.0 + tv_loss * 1.0
-            loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 30.0
+            # style_loss = calc_Gram_Loss(output_style_features, target_style_features)
+            # content_loss = calc_c_loss(output_content_features, target_content_features)
+            # tv_loss = calc_tv_Loss(fake_b)
+
+            # # loss_g += content_loss * 1.0 + tv_loss * 1.0
+            # loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 30.0
             # loss_g += style_loss * 10.0
 
             loss_g.backward()
@@ -268,15 +272,15 @@ if __name__ == '__main__':
             sum_d_loss += loss_d.item()
             sum_g_loss += loss_g_gan.item()
             sum_gfeat_loss += loss_G_GAN_Feat.item()
-            # sum_angular_loss += loss_G_Ang.item()
-            sum_sobel_loss += loss_sobelL1.item()
-            sum_perp_loss += content_loss.item()
-            sum_style_loss += style_loss.item()
-            sum_tv_loss += tv_loss.item()
+            sum_angular_loss += loss_G_Ang.item()
+            # sum_sobel_loss += loss_sobelL1.item()
+            sum_perp_loss += perp_loss.item()
+            # sum_style_loss += style_loss.item()
+            # sum_tv_loss += tv_loss.item()
 
             sum_tot_g_loss += loss_g.item()
 
-            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [Sob: %.6f] [P: %.6f] [S: %.6f] [T: %.6f] [Tot: %.6f]' %(
+            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [Sob: %.6f] [P: %.6f] [Tot: %.6f]' %(
                 iteration,
                 data_len,
                 epoch,
@@ -284,11 +288,11 @@ if __name__ == '__main__':
                 sum_d_loss/max(1, iteration),
                 sum_g_loss/max(1, iteration),
                 sum_gfeat_loss/max(1, iteration),
-                # sum_angular_loss/max(1, iteration),
-                sum_sobel_loss/max(1, iteration),
+                sum_angular_loss/max(1, iteration),
+                # sum_sobel_loss/max(1, iteration),
                 sum_perp_loss/max(1, iteration),
-                sum_style_loss/max(1, iteration),
-                sum_tv_loss/max(1, iteration),
+                # sum_style_loss/max(1, iteration),
+                # sum_tv_loss/max(1, iteration),
                 sum_tot_g_loss/max(1, iteration),
             ))
 
@@ -298,10 +302,10 @@ if __name__ == '__main__':
         update_learning_rate(net_g_scheduler, optimizer_g)
         update_learning_rate(net_d_scheduler, optimizer_d)
 
-        if epoch <= 20:
-            sobelLambda = 100/20*epoch
+        # if epoch <= 20:
+        #     sobelLambda = 100/20*epoch
 
-            print('Update sobel lambda: %f' % (sobelLambda))
+        #     print('Update sobel lambda: %f' % (sobelLambda))
 
         # test
         avg_psnr = 0
