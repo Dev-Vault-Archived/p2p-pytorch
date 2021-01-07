@@ -293,7 +293,8 @@ if __name__ == '__main__':
             # Perceptual loss
             perp_loss = criterionVGG(fake_b, real_b)
 
-            loss_g += perp_loss
+            loss_g += perp_loss * 10
+
             # target_content_features = extract_features(criterionVGG, real_b, [15])
             # target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
 
