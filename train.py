@@ -12,7 +12,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 import torchvision
-from skimage.measure import compare_ssim
+from skimage.metrics import structural_similarity
 
 # from utils import save_img
 from PIL import Image
@@ -36,7 +36,7 @@ def ssim(image_out, image_ref):
     image_out = np.array(tensor2img(image_out), dtype='float')
     image_ref = np.array(tensor2img(image_ref), dtype='float')
 
-    return compare_ssim(image_out, image_ref, multichannel=True)
+    return structural_similarity(image_out, image_ref, multichannel=True)
 
 def psnr(ground, compressed):
     np_ground = np.array(tensor2img(ground), dtype='float')
