@@ -131,7 +131,9 @@ class ConvLayer(nn.Module):
         
         # activation
         if activation == 'relu':
-            self.activation = nn.ReLU()
+            self.activation = nn.ReLU()        
+        elif activation == 'linear':
+            self.activation = lambda x : x
         elif activation == 'tanh':
             self.activation = nn.Tanh()
         else:
@@ -161,7 +163,7 @@ class ResidualLayer(nn.Module):
                                normalization=normalization)
         
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size, stride, pad, 
-                               activation='relu', 
+                               activation='linear', 
                                normalization=normalization)
         
     def forward(self, x):
