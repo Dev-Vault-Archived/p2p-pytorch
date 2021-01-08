@@ -105,9 +105,9 @@ class TransformNetwork(nn.Module):
             ResidualLayer(128, 128, 3, 1),
             ResidualLayer(128, 128, 3, 1),
             
-            DeconvLayer(128, 64, 3, 1),
-            DeconvLayer(64, 32, 3, 1),
-            DeconvLayer(32, 3, 9, 1, activation='tanh'))
+            DeconvLayer(128, 64, 3, 1, is_upsampling=True),
+            DeconvLayer(64, 32, 3, 1, is_upsampling=True),
+            DeconvLayer(32, 3, 9, 1, activation='tanh', is_upsampling=True))
         
     def forward(self, x):
         return self.layers(x)
@@ -171,11 +171,12 @@ class ResidualLayer(nn.Module):
         return self.conv2(y) + x
         
 class DeconvLayer(nn.Module):    
-    def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', activation='relu', normalization='batch', upsample='nearest'):        
+    def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', activation='relu', normalization='batch', upsample='nearest', is_upsampling=False):        
         super(DeconvLayer, self).__init__()
         
         # upsample
         self.upsample = upsample
+        self.upsampling = is_upsampling
         
         # pad
         if pad == 'reflect':            
@@ -205,7 +206,9 @@ class DeconvLayer(nn.Module):
             raise NotImplementedError("Not expected normalization flag !!!")
         
     def forward(self, x):
-        x = nn.functional.interpolate(x, scale_factor=2, mode=self.upsample)        
+        if self.upsampling:
+            x = nn.functional.interpolate(x, scale_factor=2, mode=self.upsample)
+        
         x = self.pad(x)
         x = self.conv(x)
         x = self.normalization(x)        
