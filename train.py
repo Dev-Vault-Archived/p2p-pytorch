@@ -12,6 +12,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 import torchvision
+from skimage.measure import compare_ssim
 
 # from utils import save_img
 from PIL import Image
@@ -31,6 +32,12 @@ def tensor2img(tensor):
     img = Image.fromarray(tensor)
     return img
 
+def ssim(image_out, image_ref):
+    image_out = np.array(tensor2img(image_out), dtype='float')
+    image_ref = np.array(tensor2img(image_ref), dtype='float')
+
+    return compare_ssim(image_out, image_ref, multichannel=True)
+
 def psnr(ground, compressed):
     np_ground = np.array(tensor2img(ground), dtype='float')
     np_compressed = np.array(tensor2img(compressed), dtype='float')
@@ -38,41 +45,41 @@ def psnr(ground, compressed):
     psnr = np.log10(255**2/mse) * 10
     return psnr
 
-# def extract_features(model, x, layers):
-#     features = list()
+def extract_features(model, x, layers):
+    features = list()
 
-#     # normalize image to match vgg network
-#     x = transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))(x)
+    # normalize image to match vgg network
+    x = transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))(x)
 
-#     for index, layer in enumerate(model):
-#         x = layer(x)
-#         if index in layers:
-#             features.append(x)
-#     return features
+    for index, layer in enumerate(model):
+        x = layer(x)
+        if index in layers:
+            features.append(x)
+    return features
 
-# def gram(x):
-#     b ,c, h, w = x.size()
-#     g = torch.bmm(x.view(b, c, h*w), x.view(b, c, h*w).transpose(1,2))
-#     return g.div(h*w)
+def gram(x):
+    b ,c, h, w = x.size()
+    g = torch.bmm(x.view(b, c, h*w), x.view(b, c, h*w).transpose(1,2))
+    return g.div(h*w)
 
-# def calc_Gram_Loss(features, targets, weights=None):
-#     if weights is None:
-#         weights = [1/len(features)] * len(features)
+def calc_Gram_Loss(features, targets, weights=None):
+    if weights is None:
+        weights = [1/len(features)] * len(features)
         
-#     gram_loss = 0
-#     for f, t, w in zip(features, targets, weights):
-#         gram_loss += mse_criterion(gram(f), gram(t)) * w
-#     return gram_loss
+    gram_loss = 0
+    for f, t, w in zip(features, targets, weights):
+        gram_loss += mse_criterion(gram(f), gram(t)) * w
+    return gram_loss
 
-# def calc_c_loss(features, targets, weights=None):
-#     if weights is None:
-#         weights = [1/len(features)] * len(features)
+def calc_c_loss(features, targets, weights=None):
+    if weights is None:
+        weights = [1/len(features)] * len(features)
     
-#     content_loss = 0
-#     for f, t, w in zip(features, targets, weights):
-#         content_loss += mse_criterion(f, t) * w
+    content_loss = 0
+    for f, t, w in zip(features, targets, weights):
+        content_loss += mse_criterion(f, t) * w
         
-#     return content_loss
+    return content_loss
 
 # def calc_tv_Loss(x):
 #     tv_loss = torch.mean(torch.abs(x[:, :, :, :-1] - x[:, :, :, 1:]))
@@ -140,51 +147,51 @@ if __name__ == '__main__':
     # criterionMSE = nn.MSELoss().to(device)
     criterionAngular = angular_loss().to(device)
 
-    # criterionVGG = torchvision.models.vgg16(pretrained=True).features.to(device)
-    class FeatureExtractor(nn.Module):
-        def __init__(self, cnn, feature_layer=11):
-            super(FeatureExtractor, self).__init__()
-            self.features = nn.Sequential(*list(cnn.features.children())[:(feature_layer + 1)])
+    criterionVGG = torchvision.models.vgg16(pretrained=True).features.to(device)
+    # class FeatureExtractor(nn.Module):
+    #     def __init__(self, cnn, feature_layer=11):
+    #         super(FeatureExtractor, self).__init__()
+    #         self.features = nn.Sequential(*list(cnn.features.children())[:(feature_layer + 1)])
 
-        def normalize(self, tensors, mean, std):
-            if not torch.is_tensor(tensors):
-                raise TypeError('tensor is not a torch image.')
-            for tensor in tensors:
-                for t, m, s in zip(tensor, mean, std):
-                    t.sub_(m).div_(s)
-            return tensors
+    #     def normalize(self, tensors, mean, std):
+    #         if not torch.is_tensor(tensors):
+    #             raise TypeError('tensor is not a torch image.')
+    #         for tensor in tensors:
+    #             for t, m, s in zip(tensor, mean, std):
+    #                 t.sub_(m).div_(s)
+    #         return tensors
 
-        def forward(self, x):
-            # it image is gray scale then make it to 3 channel
-            if x.size()[1] == 1:
-                x = x.expand(-1, 3, -1, -1)
+    #     def forward(self, x):
+    #         # it image is gray scale then make it to 3 channel
+    #         if x.size()[1] == 1:
+    #             x = x.expand(-1, 3, -1, -1)
                 
-            # [-1: 1] image to  [0:1] image---------------------------------------------------(1)
-            x = (x + 1) * 0.5
+    #         # [-1: 1] image to  [0:1] image---------------------------------------------------(1)
+    #         x = (x + 1) * 0.5
             
-            # https://pytorch.org/docs/stable/torchvision/models.html
-            x.data = self.normalize(x.data, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-            return self.features(x)
+    #         # https://pytorch.org/docs/stable/torchvision/models.html
+    #         x.data = self.normalize(x.data, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    #         return self.features(x)
 
-    # Feature extracting using vgg19
-    vgg19 = torchvision.models.vgg19(pretrained=True)
-    feature_extractor = FeatureExtractor(vgg19, feature_layer=35).to(device)
+    # # Feature extracting using vgg19
+    # vgg19 = torchvision.models.vgg19(pretrained=True)
+    # feature_extractor = FeatureExtractor(vgg19, feature_layer=35).to(device)
 
-    class VGG19Loss(object):
-        def __call__(self, output, target):
+    # class VGG19Loss(object):
+    #     def __call__(self, output, target):
         
-            # [-1: 1] image to  [0:1] image---------------------------------------------------(2)
-            output = (output + 1) * 0.5
-            target = (target + 1) * 0.5
+    #         # [-1: 1] image to  [0:1] image---------------------------------------------------(2)
+    #         output = (output + 1) * 0.5
+    #         target = (target + 1) * 0.5
 
-            output = feature_extractor(output)
-            target = feature_extractor(target).data
-            return MSE(output, target)
+    #         output = feature_extractor(output)
+    #         target = feature_extractor(target).data
+    #         return MSE(output, target)
 
-    # criterion
-    MSE = nn.MSELoss().to(device)
-    BCE = nn.BCELoss().to(device)
-    criterionVGG = VGG19Loss()
+    # # criterion
+    # MSE = nn.MSELoss().to(device)
+    # BCE = nn.BCELoss().to(device)
+    # criterionVGG = VGG19Loss()
 
     # setup optimizer
     optimizer_g = optim.Adam(net_g.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -209,7 +216,7 @@ if __name__ == '__main__':
         # sum_sobel_loss = 0
 
         sum_perp_loss = 0
-        # sum_style_loss = 0
+        sum_style_loss = 0
         # sum_tv_loss = 0
 
         for iteration, batch in bar:
@@ -254,14 +261,14 @@ if __name__ == '__main__':
             # Masking real_a and fake_b
 
             # First, G(A) should fake the discriminator
-            masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
-            mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
+            # masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
+            # mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
 
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
             # save_img(mask_image.detach().squeeze(0).cpu(), "mask.png")
 
-            fake_ab = torch.cat((real_a, mask_image), 1)
+            fake_ab = torch.cat((real_a, fake_b), 1)
             pred_fake = net_d.forward(fake_ab)
             loss_g_gan = criterionGAN(pred_fake, True)
 
@@ -291,22 +298,22 @@ if __name__ == '__main__':
             # loss_g += loss_sobelL1
 
             # Perceptual loss
-            perp_loss = criterionVGG(fake_b, real_b)
+            # perp_loss = criterionVGG(fake_b, real_b)
 
-            loss_g += perp_loss * 10
+            # loss_g += perp_loss * 10
 
-            # target_content_features = extract_features(criterionVGG, real_b, [15])
-            # target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
+            target_content_features = extract_features(criterionVGG, real_b, [15])
+            target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
 
-            # output_content_features = extract_features(criterionVGG, fake_b, [15])
-            # output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
+            output_content_features = extract_features(criterionVGG, fake_b, [15])
+            output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
 
-            # style_loss = calc_Gram_Loss(output_style_features, target_style_features)
-            # content_loss = calc_c_loss(output_content_features, target_content_features)
+            style_loss = calc_Gram_Loss(output_style_features, target_style_features)
+            content_loss = calc_c_loss(output_content_features, target_content_features)
             # tv_loss = calc_tv_Loss(fake_b)
 
             # # loss_g += content_loss * 1.0 + tv_loss * 1.0
-            # loss_g += content_loss * 1.0 + tv_loss * 1.0 + style_loss * 30.0
+            loss_g += content_loss * 30.0 + style_loss * 1.0
             # loss_g += style_loss * 10.0
 
             loss_g.backward()
@@ -318,13 +325,13 @@ if __name__ == '__main__':
             sum_gfeat_loss += loss_G_GAN_Feat.item()
             sum_angular_loss += loss_G_Ang.item()
             # sum_sobel_loss += loss_sobelL1.item()
-            sum_perp_loss += perp_loss.item()
-            # sum_style_loss += style_loss.item()
+            sum_perp_loss += content_loss.item()
+            sum_style_loss += style_loss.item()
             # sum_tv_loss += tv_loss.item()
 
             sum_tot_g_loss += loss_g.item()
 
-            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [Sob: %.6f] [P: %.6f] [Tot: %.6f]' %(
+            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [A: %.6f] [C: %.6f] [S: %.6f] [Tot: %.6f]' %(
                 iteration,
                 data_len,
                 epoch,
@@ -335,7 +342,7 @@ if __name__ == '__main__':
                 sum_angular_loss/max(1, iteration),
                 # sum_sobel_loss/max(1, iteration),
                 sum_perp_loss/max(1, iteration),
-                # sum_style_loss/max(1, iteration),
+                sum_style_loss/max(1, iteration),
                 # sum_tv_loss/max(1, iteration),
                 sum_tot_g_loss/max(1, iteration),
             ))
@@ -352,8 +359,10 @@ if __name__ == '__main__':
         #     print('Update sobel lambda: %f' % (sobelLambda))
 
         # test
-        avg_psnr = 0
+        psnr_list = []
+        ssim_list = []
         max_psnr = 0
+        max_ssim = 0
         for batch in testing_data_loader:
             input, target = batch[0].to(device), batch[1].to(device)
 
@@ -366,12 +375,19 @@ if __name__ == '__main__':
             # mse = criterionMSE(prediction, target)
             # psnr = 10 * log10(1 / mse.item())
             peesneen = psnr(target, prediction)
+            esesim = ssim(prediction, target)
 
             max_psnr = max(max_psnr, peesneen)
+            max_ssim = max(max_ssim, esesim)
 
-            avg_psnr += peesneen
-        print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(testing_data_loader)))
+            psnr_list.append(peesneen)
+            ssim_list.append(esesim)
+
+        print("===> Avg. PSNR: {:.4f} dB".format(np.mean(psnr_list)))
+        print("===> Avg. SSIM: {:.4f}".format(np.mean(ssim_list)))
+
         print("===> Max PSNR: {:.4f} dB".format(max_psnr))
+        print("===> Max SSIM: {:.4f} dB".format(max_ssim))
 
         #checkpoint
         if epoch % opt.epochsave == 0:

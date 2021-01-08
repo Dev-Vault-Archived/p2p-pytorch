@@ -312,7 +312,7 @@ class NLayerDiscriminator(nn.Module):
             return self.model(input)
 
 class GANLoss(nn.Module):
-    def __init__(self, use_lsgan=True, target_real_label=1.0, target_fake_label=0.0,
+    def __init__(self, use_lsgan=True, target_real_label=0.9, target_fake_label=0.0,
                  tensor=torch.cuda.FloatTensor):
         super(GANLoss, self).__init__()
         self.real_label = target_real_label
