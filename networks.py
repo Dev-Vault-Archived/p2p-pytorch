@@ -91,9 +91,9 @@ class TransformNetwork(nn.Module):
         super(TransformNetwork, self).__init__()        
         
         self.layers = nn.Sequential(            
-            DeconvLayer(3, 32, 9, 1),
-            DeconvLayer(32, 64, 3, 2),
-            DeconvLayer(64, 128, 3, 2),
+            ConvLayer(3, 32, 9, 1),
+            ConvLayer(32, 64, 3, 2),
+            ConvLayer(64, 128, 3, 2),
             
             ResidualLayer(128, 128, 3, 1),
             ResidualLayer(128, 128, 3, 1),
@@ -105,9 +105,9 @@ class TransformNetwork(nn.Module):
             ResidualLayer(128, 128, 3, 1),
             ResidualLayer(128, 128, 3, 1),
             
-            DeconvLayer(128, 64, 3, 1, is_upsampling=True),
-            DeconvLayer(64, 32, 3, 1, is_upsampling=True),
-            DeconvLayer(32, 3, 9, 1, activation='tanh', is_upsampling=True))
+            DeconvLayer(128, 64, 3, 1),
+            DeconvLayer(64, 32, 3, 1),
+            ConvLayer(32, 3, 9, 1, activation='tanh'))
         
     def forward(self, x):
         return self.layers(x)
@@ -131,9 +131,7 @@ class ConvLayer(nn.Module):
         
         # activation
         if activation == 'relu':
-            self.activation = nn.ReLU()        
-        elif activation == 'linear':
-            self.activation = lambda x : x
+            self.activation = nn.ReLU()
         elif activation == 'tanh':
             self.activation = nn.Tanh()
         else:
@@ -163,7 +161,7 @@ class ResidualLayer(nn.Module):
                                normalization=normalization)
         
         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size, stride, pad, 
-                               activation='linear', 
+                               activation='relu', 
                                normalization=normalization)
         
     def forward(self, x):
@@ -171,12 +169,11 @@ class ResidualLayer(nn.Module):
         return self.conv2(y) + x
         
 class DeconvLayer(nn.Module):    
-    def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', activation='relu', normalization='batch', upsample='nearest', is_upsampling=False):        
+    def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', activation='relu', normalization='batch', upsample='nearest'):        
         super(DeconvLayer, self).__init__()
         
         # upsample
         self.upsample = upsample
-        self.upsampling = is_upsampling
         
         # pad
         if pad == 'reflect':            
@@ -192,8 +189,6 @@ class DeconvLayer(nn.Module):
         # activation
         if activation == 'relu':
             self.activation = nn.ReLU()
-        elif activation == 'tanh':
-            self.activation = nn.Tanh()
         else:
             raise NotImplementedError("Not expected activation flag !!!")
         
@@ -206,9 +201,7 @@ class DeconvLayer(nn.Module):
             raise NotImplementedError("Not expected normalization flag !!!")
         
     def forward(self, x):
-        if self.upsampling:
-            x = nn.functional.interpolate(x, scale_factor=2, mode=self.upsample)
-        
+        x = nn.functional.interpolate(x, scale_factor=2, mode=self.upsample)        
         x = self.pad(x)
         x = self.conv(x)
         x = self.normalization(x)        
