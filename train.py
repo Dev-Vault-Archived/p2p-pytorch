@@ -397,6 +397,6 @@ if __name__ == '__main__':
                 os.mkdir(os.path.join("checkpoint", opt.dataset))
             net_g_model_out_path = "checkpoint/{}/netG_model_epoch_{}.pth".format(opt.dataset, epoch)
             net_d_model_out_path = "checkpoint/{}/netD_model_epoch_{}.pth".format(opt.dataset, epoch)
-            torch.save(net_g.state_dict(), net_g_model_out_path)
+            torch.save(net_g, net_g_model_out_path)
             # torch.save(net_d, net_d_model_out_path)
             print("Checkpoint saved to {}".format("checkpoint" + opt.dataset))
