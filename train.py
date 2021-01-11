@@ -404,10 +404,10 @@ if __name__ == '__main__':
         update_learning_rate(net_g_scheduler, optimizer_g)
         update_learning_rate(net_d_scheduler, optimizer_d)
 
-        # if epoch <= 20:
-        #     sobelLambda = 100/20*epoch
+        if epoch <= 20:
+            sobelLambda = 100/20*epoch
 
-        #     print('Update sobel lambda: %f' % (sobelLambda))
+            print('Update sobel lambda: %f' % (sobelLambda))
 
         # test
         psnr_list = []
