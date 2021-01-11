@@ -118,6 +118,7 @@ if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
     parser.add_argument('--dataset', required=True, help='facades')
+    parser.add_argument('--name', required=True, help='training name')
     parser.add_argument('--epoch_count', type=int, default=1, help='the starting epoch count')
     parser.add_argument('--nepoch', type=int, default=50, help='# of epoch')
     parser.add_argument('--niter', type=int, default=100, help='# of iter at starting learning rate')
@@ -231,7 +232,7 @@ if __name__ == '__main__':
 
     if start_epoch > 1:
         # Jika ternyata start epochnya lebih dari 1, berarti load checkpoint
-        start_epoch, net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger = load_checkpoint(net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger, "checkpoint/{}/net_epoch_{}.pth".format(opt.dataset, start_epoch-1))
+        start_epoch, net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger = load_checkpoint(net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger, "checkpoint/{}/net_{}_epoch_{}.pth".format(opt.dataset, opt.name, start_epoch-1))
 
         for state in optimizer_g.state.values():
             for k, v in state.items():
@@ -449,7 +450,7 @@ if __name__ == '__main__':
                 os.mkdir("checkpoint")
             if not os.path.exists(os.path.join("checkpoint", opt.dataset)):
                 os.mkdir(os.path.join("checkpoint", opt.dataset))
-            net_g_model_out_path = "checkpoint/{}/net_epoch_{}.pth".format(opt.dataset, epoch)
+            net_g_model_out_path = "checkpoint/{}/net_{}_epoch_{}.pth".format(opt.dataset, opt.name, epoch)
             # net_d_model_out_path = "checkpoint/{}/netD_model_epoch_{}.pth".format(opt.dataset, epoch)
 
             # This is the state
