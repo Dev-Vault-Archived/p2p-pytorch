@@ -229,6 +229,16 @@ if __name__ == '__main__':
         # Jika ternyata start epochnya lebih dari 1, berarti load checkpoint
         start_epoch, net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger = load_checkpoint(net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger, "checkpoint/{}/net_epoch_{}.pth".format(opt.dataset, start_epoch))
 
+    for state in optimizer_g.state.values():
+        for k, v in state.items():
+            if isinstance(v, torch.Tensor):
+                state[k] = v.to(device)
+
+    for state in optimizer_d.state.values():
+        for k, v in state.items():
+            if isinstance(v, torch.Tensor):
+                state[k] = v.to(device)
+
     # num_epoch = opt.niter + opt.niter_decay + 1
     num_epoch = opt.nepoch + 1
     for epoch in range(start_epoch, num_epoch):
