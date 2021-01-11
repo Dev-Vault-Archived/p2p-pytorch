@@ -76,7 +76,7 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, upsamplin
     
     # print('Cropped')
 
-    for i in range(len(img_patches)):
+    for i in range(min(len(img_patches), 3)):
         img = Image.fromarray(img_patches[i])
         # print(np.asarray(compress(torch.Tensor(img_patches[0]), 4) * (2**4 - 1)))
         imgs = tensor2img(compress(ToTensor()(img_patches[i]), 3))
