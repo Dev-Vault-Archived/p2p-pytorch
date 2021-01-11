@@ -8,6 +8,7 @@ import torch.nn.functional as F
 
 from PIL import Image
 from multiprocessing import Pool
+from tqdm import tqdm
 
 def mkdir(directory, mode=0o777):
     if not os.path.exists(directory):
@@ -109,9 +110,18 @@ def main(target_dataset_folder, dataset_path, bit_size, pool_size, crop_size, im
 
     img_files = os.listdir(src_path)
 
-    pool = Pool(pool_size)
-    for files in img_files:
+    bar = tqdm(img_files)
+    i = 0
+    max = len(bar)
+    # pool = Pool(pool_size)
+    for files in bar:
         generate_patches(src_path, files, set_path, crop_size, img_format, upsampling)
+
+        bar.set_description(desc='itr: %d/%d' %(
+            i, max
+        ))
+
+        i += 1
         # res = pool.apply_async(
         #     generate_patches,
         #     args=(src_path, files, set_path, crop_size, img_format, upsampling)
@@ -119,8 +129,8 @@ def main(target_dataset_folder, dataset_path, bit_size, pool_size, crop_size, im
         # print(res)
         # break
     
-    pool.close()
-    pool.join()
+    # pool.close()
+    # pool.join()
     print('Dataset Created')
 
 if __name__ == '__main__':
