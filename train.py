@@ -20,6 +20,10 @@ from PIL import Image
 from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss, sobelLayer
 from data import get_training_set, get_test_set
 
+import warnings
+
+warnings.filterwarnings("ignore")
+
 mse_criterion = torch.nn.MSELoss(reduction='mean')
 
 def tensor2img(tensor):
