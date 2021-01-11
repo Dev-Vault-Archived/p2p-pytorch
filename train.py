@@ -258,7 +258,7 @@ if __name__ == '__main__':
 
         sum_gfeat_loss = 0
 
-        sum_angular_loss = 0
+        # sum_angular_loss = 0
         # sum_sobel_loss = 0
 
         sum_perp_loss = 0
@@ -307,14 +307,14 @@ if __name__ == '__main__':
             # Masking real_a and fake_b
 
             # First, G(A) should fake the discriminator
-            # masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
-            # mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
+            masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
+            mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
 
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
             # save_img(mask_image.detach().squeeze(0).cpu(), "mask.png")
 
-            fake_ab = torch.cat((real_a, fake_b), 1)
+            fake_ab = torch.cat((real_a, mask_image), 1)
             pred_fake = net_d.forward(fake_ab)
             loss_g_gan = criterionGAN(pred_fake, True)
 
@@ -333,12 +333,12 @@ if __name__ == '__main__':
             
             loss_g = loss_g_gan + loss_G_GAN_Feat
 
-            eps = torch.tensor(1e-04).to(device)
-            illum_gt = torch.div(real_a, torch.max(real_b, eps))
-            illum_pred = torch.div(real_a, torch.max(fake_b, eps))
-            loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1.0
+            # eps = torch.tensor(1e-04).to(device)
+            # illum_gt = torch.div(real_a, torch.max(real_b, eps))
+            # illum_pred = torch.div(real_a, torch.max(fake_b, eps))
+            # loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1.0
 
-            loss_g += loss_G_Ang
+            # loss_g += loss_G_Ang
 
             # loss_sobelL1 = criterionFeat(fake_sobel, real_sobel) * sobelLambda
             # loss_g += loss_sobelL1
@@ -369,7 +369,7 @@ if __name__ == '__main__':
             sum_d_loss += loss_d.item()
             sum_g_loss += loss_g_gan.item()
             sum_gfeat_loss += loss_G_GAN_Feat.item()
-            sum_angular_loss += loss_G_Ang.item()
+            # sum_angular_loss += loss_G_Ang.item()
             # sum_sobel_loss += loss_sobelL1.item()
             sum_perp_loss += content_loss.item()
             sum_style_loss += style_loss.item()
@@ -382,7 +382,7 @@ if __name__ == '__main__':
                 # Pass for now
                 pass
 
-            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [A: %.6f] [C: %.6f] [S: %.6f] [TV: %.6f] [Tot: %.6f]' %(
+            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [C: %.6f] [S: %.6f] [TV: %.6f] [Tot: %.6f]' %(
                 iteration,
                 data_len,
                 epoch,
@@ -390,7 +390,7 @@ if __name__ == '__main__':
                 sum_d_loss/max(1, iteration),
                 sum_g_loss/max(1, iteration),
                 sum_gfeat_loss/max(1, iteration),
-                sum_angular_loss/max(1, iteration),
+                # sum_angular_loss/max(1, iteration),
                 # sum_sobel_loss/max(1, iteration),
                 sum_perp_loss/max(1, iteration),
                 sum_style_loss/max(1, iteration),
