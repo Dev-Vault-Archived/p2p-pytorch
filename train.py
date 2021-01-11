@@ -2,6 +2,7 @@ from __future__ import print_function
 import argparse
 import os
 from math import log10
+from numpy.core.numeric import Inf
 
 from tqdm import tqdm
 import numpy as np
@@ -81,10 +82,30 @@ def calc_c_loss(features, targets, weights=None):
         
     return content_loss
 
-# def calc_tv_Loss(x):
-#     tv_loss = torch.mean(torch.abs(x[:, :, :, :-1] - x[:, :, :, 1:]))
-#     tv_loss += torch.mean(torch.abs(x[:, :, :-1, :] - x[:, :, 1:, :]))
-#     return tv_loss
+def load_checkpoint(net_g, net_d, opt_g, opt_d, sched_g, sched_d, loss_logger, filename='net_epoch_x.pth'):
+    start_epoch = 0
+    if os.path.isfile(filename):
+        print("=> Loading checkpoint '{}'".format(filename))
+        state = torch.load(filename)
+
+        start_epoch = state['epoch']
+        net_g.load_state_dict(state['state_dict_g'])
+        net_d.load_state_dict(state['state_dict_d'])
+        opt_g.load_state_dict(state['optimizer_g'])
+        opt_d.load_state_dict(state['optimizer_d'])
+        sched_g.load_state_dict(state['scheduler_g'])
+        sched_d.load_state_dict(state['scheduler_d'])
+        loss_logger = state['losslogger']
+    else:
+        print("=> No checkpoint found at '{}'".format(filename))
+        exit()
+
+    return start_epoch, net_g, net_d, opt_g, opt_d, sched_g, sched_d, loss_logger
+
+def calc_tv_Loss(x):
+    tv_loss = torch.mean(torch.abs(x[:, :, :, :-1] - x[:, :, :, 1:]))
+    tv_loss += torch.mean(torch.abs(x[:, :, :-1, :] - x[:, :, 1:, :]))
+    return tv_loss
 
 if __name__ == '__main__':
 
@@ -93,6 +114,13 @@ if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
     parser.add_argument('--dataset', required=True, help='facades')
+    parser.add_argument('--epoch_count', type=int, default=1, help='the starting epoch count')
+    parser.add_argument('--nepoch', type=int, default=50, help='# of epoch')
+    parser.add_argument('--niter', type=int, default=100, help='# of iter at starting learning rate')
+    parser.add_argument('--niter_decay', type=int, default=100, help='# of iter to linearly decay learning rate to zero')
+    parser.add_argument('--cuda', action='store_true', help='use cuda?')
+    parser.add_argument('--epochsave', type=int, default=50, help='test')
+
     parser.add_argument('--batch_size', type=int, default=1, help='training batch size')
     parser.add_argument('--test_batch_size', type=int, default=1, help='testing batch size')
     parser.add_argument('--direction', type=str, default='b2a', help='a2b or b2a')
@@ -100,18 +128,13 @@ if __name__ == '__main__':
     parser.add_argument('--output_nc', type=int, default=3, help='output image channels')
     parser.add_argument('--ngf', type=int, default=64, help='generator filters in first conv layer')
     parser.add_argument('--ndf', type=int, default=64, help='discriminator filters in first conv layer')
-    parser.add_argument('--epoch_count', type=int, default=1, help='the starting epoch count')
-    parser.add_argument('--niter', type=int, default=100, help='# of iter at starting learning rate')
-    parser.add_argument('--niter_decay', type=int, default=100, help='# of iter to linearly decay learning rate to zero')
     parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate for adam')
     parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau|cosine')
     parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
     parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
-    parser.add_argument('--cuda', action='store_true', help='use cuda?')
     parser.add_argument('--threads', type=int, default=4, help='number of threads for data loader to use')
     parser.add_argument('--seed', type=int, default=123, help='random seed to use. Default=123')
     parser.add_argument('--lamb', type=int, default=10, help='weight on L1 term in objective')
-    parser.add_argument('--epochsave', type=int, default=50, help='test')
     opt = parser.parse_args()
 
     print(opt)
@@ -199,8 +222,16 @@ if __name__ == '__main__':
     net_g_scheduler = get_scheduler(optimizer_g, opt)
     net_d_scheduler = get_scheduler(optimizer_d, opt)
 
-    num_epoch = opt.niter + opt.niter_decay + 1
-    for epoch in range(opt.epoch_count, num_epoch):
+    losslogger = []
+    start_epoch = opt.epoch_count
+
+    if start_epoch > 1:
+        # Jika ternyata start epochnya lebih dari 1, berarti load checkpoint
+        start_epoch, net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger = load_checkpoint(net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger, "checkpoint/{}/net_epoch_{}.pth".format(opt.dataset, start_epoch))
+
+    # num_epoch = opt.niter + opt.niter_decay + 1
+    num_epoch = opt.nepoch + 1
+    for epoch in range(start_epoch, num_epoch):
         # train
         bar = tqdm(enumerate(training_data_loader, 1))
         data_len = len(training_data_loader)
@@ -217,7 +248,7 @@ if __name__ == '__main__':
 
         sum_perp_loss = 0
         sum_style_loss = 0
-        # sum_tv_loss = 0
+        sum_tv_loss = 0
 
         for iteration, batch in bar:
 
@@ -310,10 +341,10 @@ if __name__ == '__main__':
 
             style_loss = calc_Gram_Loss(output_style_features, target_style_features)
             content_loss = calc_c_loss(output_content_features, target_content_features)
-            # tv_loss = calc_tv_Loss(fake_b)
+            tv_loss = calc_tv_Loss(fake_b)
 
             # # loss_g += content_loss * 1.0 + tv_loss * 1.0
-            loss_g += content_loss * 15.0 + style_loss * 2.0
+            loss_g += content_loss * 10.0 + style_loss * 2.0 + tv_loss * 1.0
             # loss_g += style_loss * 10.0
 
             loss_g.backward()
@@ -327,15 +358,20 @@ if __name__ == '__main__':
             # sum_sobel_loss += loss_sobelL1.item()
             sum_perp_loss += content_loss.item()
             sum_style_loss += style_loss.item()
-            # sum_tv_loss += tv_loss.item()
+            sum_tv_loss += tv_loss.item()
 
             sum_tot_g_loss += loss_g.item()
 
-            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [A: %.6f] [C: %.6f] [S: %.6f] [Tot: %.6f]' %(
+            # In last iteration
+            if iteration == data_len:
+                # Pass for now
+                pass
+
+            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [A: %.6f] [C: %.6f] [S: %.6f] [TV: %.6f] [Tot: %.6f]' %(
                 iteration,
                 data_len,
                 epoch,
-                num_epoch,
+                num_epoch - 1,
                 sum_d_loss/max(1, iteration),
                 sum_g_loss/max(1, iteration),
                 sum_gfeat_loss/max(1, iteration),
@@ -343,7 +379,7 @@ if __name__ == '__main__':
                 # sum_sobel_loss/max(1, iteration),
                 sum_perp_loss/max(1, iteration),
                 sum_style_loss/max(1, iteration),
-                # sum_tv_loss/max(1, iteration),
+                sum_tv_loss/max(1, iteration),
                 sum_tot_g_loss/max(1, iteration),
             ))
 
@@ -377,6 +413,10 @@ if __name__ == '__main__':
             peesneen = psnr(target, prediction)
             esesim = ssim(prediction, target)
 
+            if (peesneen >= Inf):
+                # change the infinity to some number
+                peesneen = 60.0
+
             max_psnr = max(max_psnr, peesneen)
             max_ssim = max(max_ssim, esesim)
 
@@ -395,8 +435,21 @@ if __name__ == '__main__':
                 os.mkdir("checkpoint")
             if not os.path.exists(os.path.join("checkpoint", opt.dataset)):
                 os.mkdir(os.path.join("checkpoint", opt.dataset))
-            net_g_model_out_path = "checkpoint/{}/netG_model_epoch_{}.pth".format(opt.dataset, epoch)
-            net_d_model_out_path = "checkpoint/{}/netD_model_epoch_{}.pth".format(opt.dataset, epoch)
-            torch.save(net_g, net_g_model_out_path)
-            torch.save(net_d, net_d_model_out_path)
+            net_g_model_out_path = "checkpoint/{}/net_epoch_{}.pth".format(opt.dataset, epoch)
+            # net_d_model_out_path = "checkpoint/{}/netD_model_epoch_{}.pth".format(opt.dataset, epoch)
+
+            # This is the state
+            state = {
+                'epoch': epoch + 1,
+                'state_dict_g': net_g.state_dict(),
+                'state_dict_d': net_d.state_dict(),
+                'optimizer_g': optimizer_g.state_dict(),
+                'optimizer_d': optimizer_d.state_dict(),
+                'scheduler_g': net_g_scheduler.state_dict(),
+                'scheduler_d': net_d_scheduler.state_dict(),
+                'losslogger': losslogger,
+            }
+
+            torch.save(state, net_g_model_out_path)
+            # torch.save(net_d, net_d_model_out_path)
             print("Checkpoint saved to {}".format("checkpoint" + opt.dataset))
