@@ -309,6 +309,8 @@ if __name__ == '__main__':
             masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
             mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
 
+            print(mask_image.requires_grad)
+
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
             # save_img(mask_image.detach().squeeze(0).cpu(), "mask.png")
