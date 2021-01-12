@@ -234,7 +234,7 @@ class ConvLayer(nn.Module):
         super(ConvLayer, self).__init__()
         padding = kernel_size // 2
         self.reflection_pad = nn.ReflectionPad2d(padding)
-        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride) #, padding)
+        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
 
     def forward(self, x):
         out = self.reflection_pad(x)
