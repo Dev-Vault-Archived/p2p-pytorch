@@ -277,6 +277,8 @@ if __name__ == '__main__':
         sum_style_loss = 0
         sum_tv_loss = 0
 
+        net_g.train()
+        net_d.train()
         for iteration, batch in bar:
 
             # forward
@@ -427,6 +429,9 @@ if __name__ == '__main__':
         ssim_list = []
         max_psnr = 0
         max_ssim = 0
+
+        net_g.eval()
+        net_d.eval()
         for batch in testing_data_loader:
             input, target = batch[0].to(device), batch[1].to(device)
 
