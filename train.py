@@ -321,46 +321,45 @@ if __name__ == '__main__':
             # loss_g_l1 = criterionL1(fake_b, real_b) * opt.lamb
 
             # GAN Feature matching loss
-            # loss_G_GAN_Feat = 0
-            # N_Layers_D = 3
-            # Num_D = 3
-            # feat_weights = 4.0 / (N_Layers_D + 1)
-            # D_weights = 1.0 / Num_D
-            # for i in range(Num_D):
-            #     for j in range(len(pred_fake[i]) - 1):
-            #         loss_G_GAN_Feat += D_weights * feat_weights * criterionFeat(pred_fake[i][j], pred_real[i][j].detach()) * 10.0
+            loss_G_GAN_Feat = 0
+            N_Layers_D = 3
+            Num_D = 3
+            feat_weights = 4.0 / (N_Layers_D + 1)
+            D_weights = 1.0 / Num_D
+            for i in range(Num_D):
+                for j in range(len(pred_fake[i]) - 1):
+                    loss_G_GAN_Feat += D_weights * feat_weights * criterionFeat(pred_fake[i][j], pred_real[i][j].detach()) * 10.0
             
-            # loss_g = loss_g_gan + loss_G_GAN_Feat
-            loss_g = loss_g_gan
+            loss_g = loss_g_gan + loss_G_GAN_Feat
 
-            eps = torch.tensor(1e-04).to(device)
-            illum_gt = torch.div(real_a, torch.max(real_b, eps))
-            illum_pred = torch.div(real_a, torch.max(fake_b, eps))
-            loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1.0
+            # eps = torch.tensor(1e-04).to(device)
+            # illum_gt = torch.div(real_a, torch.max(real_b, eps))
+            # illum_pred = torch.div(real_a, torch.max(fake_b, eps))
+            # loss_G_Ang = criterionAngular(illum_gt, illum_pred) * 1.0
 
-            loss_g += loss_G_Ang
+            # loss_g += loss_G_Ang
 
-            # loss_sobelL1 = criterionFeat(fake_sobel, real_sobel) * sobelLambda
-            # loss_g += loss_sobelL1
+            # # loss_sobelL1 = criterionFeat(fake_sobel, real_sobel) * sobelLambda
+            # # loss_g += loss_sobelL1
 
-            # Perceptual loss
-            # perp_loss = criterionVGG(fake_b, real_b)
+            # # Perceptual loss
+            # # perp_loss = criterionVGG(fake_b, real_b)
 
-            # loss_g += perp_loss * 10
+            # # loss_g += perp_loss * 10
 
-            target_content_features = extract_features(criterionVGG, real_b, [15])
-            target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
+            # target_content_features = extract_features(criterionVGG, real_b, [15])
+            # target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
 
-            output_content_features = extract_features(criterionVGG, fake_b, [15])
-            output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
+            # output_content_features = extract_features(criterionVGG, fake_b, [15])
+            # output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
 
-            style_loss = calc_Gram_Loss(output_style_features, target_style_features)
-            content_loss = calc_c_loss(output_content_features, target_content_features)
-            tv_loss = calc_tv_Loss(fake_b)
+            # style_loss = calc_Gram_Loss(output_style_features, target_style_features)
+            # content_loss = calc_c_loss(output_content_features, target_content_features)
+            # tv_loss = calc_tv_Loss(fake_b)
 
-            # # loss_g += content_loss * 1.0 + tv_loss * 1.0
-            loss_g += content_loss * 15.0 + style_loss * 15.0 + tv_loss * 1.0
-            # loss_g += style_loss * 10.0
+            # # # loss_g += content_loss * 1.0 + tv_loss * 1.0
+            # loss_g += content_loss * 15.0 + style_loss * 15.0 + tv_loss * 1.0
+            # # loss_g += style_loss * 10.0
 
             loss_g.backward()
 
@@ -368,12 +367,12 @@ if __name__ == '__main__':
             
             sum_d_loss += loss_d.item()
             sum_g_loss += loss_g_gan.item()
-            # sum_gfeat_loss += loss_G_GAN_Feat.item()
-            sum_angular_loss += loss_G_Ang.item()
-            # sum_sobel_loss += loss_sobelL1.item()
-            sum_perp_loss += content_loss.item()
-            sum_style_loss += style_loss.item()
-            sum_tv_loss += tv_loss.item()
+            sum_gfeat_loss += loss_G_GAN_Feat.item()
+            # sum_angular_loss += loss_G_Ang.item()
+            # # sum_sobel_loss += loss_sobelL1.item()
+            # sum_perp_loss += content_loss.item()
+            # sum_style_loss += style_loss.item()
+            # sum_tv_loss += tv_loss.item()
 
             sum_tot_g_loss += loss_g.item()
 
