@@ -1,7 +1,7 @@
 from __future__ import print_function
 import argparse
 import os
-from math import log10
+from math import isnan, log10
 from numpy.core.numeric import Inf
 
 from tqdm import tqdm
@@ -271,7 +271,9 @@ if __name__ == '__main__':
 
             # forward
             real_a, real_b = batch[0].to(device), batch[1].to(device)
-
+            if True in torch.isnan(real_a):
+                print('waaa???')
+                
             # Generate fake real image
             fake_b = net_g(real_a)
 
