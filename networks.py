@@ -340,8 +340,8 @@ class TransformNetwork(nn.Module):
         # decode
         y = self.relu(self.in3_d(self.deconv3(y)))
         y = self.relu(self.in2_d(self.deconv2(y)))
-        # y = self.tanh(self.in1_d(self.deconv1(y)))
-        y = self.deconv1(y)
+        y = self.tanh(self.in1_d(self.deconv1(y)))
+        # y = self.deconv1(y)
 
         return y
 

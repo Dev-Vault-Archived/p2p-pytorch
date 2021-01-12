@@ -321,16 +321,17 @@ if __name__ == '__main__':
             # loss_g_l1 = criterionL1(fake_b, real_b) * opt.lamb
 
             # GAN Feature matching loss
-            loss_G_GAN_Feat = 0
-            N_Layers_D = 3
-            Num_D = 3
-            feat_weights = 4.0 / (N_Layers_D + 1)
-            D_weights = 1.0 / Num_D
-            for i in range(Num_D):
-                for j in range(len(pred_fake[i]) - 1):
-                    loss_G_GAN_Feat += D_weights * feat_weights * criterionFeat(pred_fake[i][j], pred_real[i][j].detach()) * 10.0
+            # loss_G_GAN_Feat = 0
+            # N_Layers_D = 3
+            # Num_D = 3
+            # feat_weights = 4.0 / (N_Layers_D + 1)
+            # D_weights = 1.0 / Num_D
+            # for i in range(Num_D):
+            #     for j in range(len(pred_fake[i]) - 1):
+            #         loss_G_GAN_Feat += D_weights * feat_weights * criterionFeat(pred_fake[i][j], pred_real[i][j].detach()) * 10.0
             
-            loss_g = loss_g_gan + loss_G_GAN_Feat
+            # loss_g = loss_g_gan + loss_G_GAN_Feat
+            loss_g = loss_g_gan
 
             eps = torch.tensor(1e-04).to(device)
             illum_gt = torch.div(real_a, torch.max(real_b, eps))
