@@ -18,7 +18,7 @@ from skimage.metrics import structural_similarity
 
 # from utils import save_img
 from PIL import Image
-from networks import ImagePool, define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss, sobelLayer
+from networks import ImagePool, VGGLoss, define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss, sobelLayer
 from data import get_training_set, get_test_set
 from utils import save_img
 
@@ -187,7 +187,8 @@ if __name__ == '__main__':
     # criterionMSE = nn.MSELoss().to(device)
     criterionAngular = angular_loss().to(device)
 
-    criterionVGG = torchvision.models.vgg16(pretrained=True).features.to(device)
+    criterionVGG = VGGLoss(device).to(device)
+
     # class FeatureExtractor(nn.Module):
     #     def __init__(self, cnn, feature_layer=11):
     #         super(FeatureExtractor, self).__init__()
@@ -357,14 +358,14 @@ if __name__ == '__main__':
 
             # loss_g += perp_loss * 10
 
-            target_content_features = extract_features(criterionVGG, real_b, [15])
+            # target_content_features = extract_features(criterionVGG, real_b, [15])
             # target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
 
-            output_content_features = extract_features(criterionVGG, fake_b, [15])
+            # output_content_features = extract_features(criterionVGG, fake_b, [15])
             # output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
 
             # style_loss = calc_Gram_Loss(output_style_features, target_style_features)
-            content_loss = calc_c_loss(output_content_features, target_content_features)
+            content_loss = criterionVGG(fake_b, real_b) * 10.0
             tv_loss = calc_tv_Loss(fake_b)
 
             loss_g += content_loss * 1.0 + tv_loss * 1.0
