@@ -273,7 +273,7 @@ class ConvLayer(nn.Module):
         
         # activation
         if activation == 'relu':
-            self.activation = nn.ReLU()        
+            self.activation = nn.ReLU(True)        
         elif activation == 'linear':
             self.activation = lambda x : x
         elif activation == 'tanh':
