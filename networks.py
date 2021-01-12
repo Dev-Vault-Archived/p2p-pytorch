@@ -234,7 +234,19 @@ class ConvLayer(nn.Module):
         super(ConvLayer, self).__init__()
         padding = kernel_size // 2
         self.reflection_pad = nn.ReflectionPad2d(padding)
-        self.conv2d = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride) #, padding)
+        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride) #, padding)
+
+    def forward(self, x):
+        out = self.reflection_pad(x)
+        out = self.conv2d(out)
+        return out
+
+class DeConvLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride):
+        super(ConvLayer, self).__init__()
+        padding = kernel_size // 2
+        # self.reflection_pad = nn.ReflectionPad2d(padding)
+        self.conv2d = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding=padding) #, padding)
 
     def forward(self, x):
         out = self.reflection_pad(x)
@@ -250,7 +262,7 @@ class UpsampleConvLayer(nn.Module):
             self.upsample = nn.Upsample(scale_factor=upsample, mode='nearest')
         reflection_padding = kernel_size // 2
         self.reflection_pad = nn.ReflectionPad2d(reflection_padding)
-        self.conv2d = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride)
+        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride)
 
     def forward(self, x):
         if self.upsample:
@@ -290,13 +302,13 @@ class TransformNetwork(nn.Module):
         self.tanh = nn.Tanh()
 
         # encoding layers
-        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
+        self.conv1 = DeConvLayer(3, 32, kernel_size=9, stride=1)
         self.in1_e = nn.BatchNorm2d(32, affine=True)
 
-        self.conv2 = ConvLayer(32, 64, kernel_size=3, stride=2)
+        self.conv2 = DeConvLayer(32, 64, kernel_size=3, stride=2)
         self.in2_e = nn.BatchNorm2d(64, affine=True)
 
-        self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
+        self.conv3 = DeConvLayer(64, 128, kernel_size=3, stride=2)
         self.in3_e = nn.BatchNorm2d(128, affine=True)
 
         # residual layers
