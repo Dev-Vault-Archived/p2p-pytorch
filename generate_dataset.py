@@ -89,11 +89,11 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, upsamplin
         # print(np.asarray(compress(torch.Tensor(img_patches[0]), 4) * (2**4 - 1)))
         imgs = tensor2img(compress(ToTensor()(img_patches[i]), 3))
 
-        if ssim(imgs, img) > 0.75:
-            print('skipped?')
-            # Dataset kita pilah yang memiliki hasil compressan SSIM lebih dari 0.75 maka akan di skip
-            # supaya kita mendapatkan dataset yang pas semuanya tidak ngasalan
-            continue
+        # if ssim(imgs, img) > 0.75:
+        #     print('skipped?')
+        #     # Dataset kita pilah yang memiliki hasil compressan SSIM lebih dari 0.75 maka akan di skip
+        #     # supaya kita mendapatkan dataset yang pas semuanya tidak ngasalan
+        #     continue
 
         # print('Compressed')
 
