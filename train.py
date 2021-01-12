@@ -319,7 +319,7 @@ if __name__ == '__main__':
             fake_b_nograd = Variable(fake_b, requires_grad=False)
 
             # First, G(A) should fake the discriminator
-            masking = torch.bitwise_and(torch.tensor(tensor2np(fake_b_nograd)), torch.tensor(tensor2np(real_a)))
+            masking = torch.bitwise_and(torch.from_numpy(tensor2np(fake_b_nograd)), torch.from_numpy(tensor2np(real_a)))
             # mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
 
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
