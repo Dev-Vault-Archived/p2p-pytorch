@@ -38,6 +38,16 @@ def tensor2img(tensor):
     img = Image.fromarray(tensor)
     return img
 
+def tensor2np(tensor):
+    tensor = tensor.cpu()
+    tensor = tensor.detach().numpy()
+    tensor = np.squeeze(tensor)
+    tensor = np.moveaxis(tensor, 0, 2)
+    tensor = tensor * 255
+    tensor = tensor.clip(0, 255).astype(np.uint8)
+
+    return tensor
+
 def ssim(image_out, image_ref):
     image_out = np.array(tensor2img(image_out), dtype='float')
     image_ref = np.array(tensor2img(image_ref), dtype='float')
@@ -309,7 +319,7 @@ if __name__ == '__main__':
             fake_b_nograd = Variable(fake_b, requires_grad=False)
 
             # First, G(A) should fake the discriminator
-            masking = torch.bitwise_and(tensor2img(fake_b_nograd), tensor2img(real_a))
+            masking = torch.bitwise_and(tensor2np(fake_b_nograd), tensor2np(real_a))
             # mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
 
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
