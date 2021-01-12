@@ -267,10 +267,10 @@ class ResidualBlock(nn.Module):
     def __init__(self, channels):
         super(ResidualBlock, self).__init__()
         self.conv1 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in1 = nn.BatchNorm2d(channels, affine=True)
+        self.in1 = nn.InstanceNorm2d(channels, affine=True)
         self.relu = nn.ReLU()
         self.conv2 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in2 = nn.BatchNorm2d(channels, affine=True)
+        self.in2 = nn.InstanceNorm2d(channels, affine=True)
 
     def forward(self, x):
         residual = x
@@ -291,13 +291,13 @@ class TransformNetwork(nn.Module):
 
         # encoding layers
         self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
-        self.in1_e = nn.BatchNorm2d(32, affine=True)
+        self.in1_e = nn.InstanceNorm2d(32, affine=True)
 
         self.conv2 = ConvLayer(32, 64, kernel_size=3, stride=2)
-        self.in2_e = nn.BatchNorm2d(64, affine=True)
+        self.in2_e = nn.InstanceNorm2d(64, affine=True)
 
         self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
-        self.in3_e = nn.BatchNorm2d(128, affine=True)
+        self.in3_e = nn.InstanceNorm2d(128, affine=True)
 
         # residual layers
         self.res1 = ResidualBlock(128)
@@ -312,13 +312,13 @@ class TransformNetwork(nn.Module):
 
         # decoding layers
         self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
-        self.in3_d = nn.BatchNorm2d(64, affine=True)
+        self.in3_d = nn.InstanceNorm2d(64, affine=True)
 
         self.deconv2 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2 )
-        self.in2_d = nn.BatchNorm2d(32, affine=True)
+        self.in2_d = nn.InstanceNorm2d(32, affine=True)
 
         self.deconv1 = UpsampleConvLayer(32, 3, kernel_size=9, stride=1)
-        self.in1_d = nn.BatchNorm2d(3, affine=True)
+        self.in1_d = nn.InstanceNorm2d(3, affine=True)
 
     def forward(self, x):
         # encode

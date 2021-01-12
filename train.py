@@ -113,7 +113,7 @@ def calc_tv_Loss(x):
 
 if __name__ == '__main__':
 
-    torch.autograd.set_detect_anomaly(True)
+    # torch.autograd.set_detect_anomaly(True)
 
     # torch.autograd.set_detect_anomaly(True)
 
@@ -271,9 +271,6 @@ if __name__ == '__main__':
 
             # forward
             real_a, real_b = batch[0].to(device), batch[1].to(device)
-            if True in torch.isnan(real_a):
-                print('waaa???')
-                
             # Generate fake real image
             fake_b = net_g(real_a)
 
