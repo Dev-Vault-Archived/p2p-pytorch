@@ -317,17 +317,17 @@ if __name__ == '__main__':
 
             # Masking real_a and fake_b
 
-            fake_b_nograd = Variable(fake_b, requires_grad=False)
+            # fake_b_nograd = Variable(fake_b, requires_grad=False)
 
             # First, G(A) should fake the discriminator
-            masking = torch.bitwise_and(torch.from_numpy(tensor2np(fake_b_nograd)), torch.from_numpy(tensor2np(real_a)))
+            # masking = torch.bitwise_and(torch.from_numpy(tensor2np(fake_b_nograd)), torch.from_numpy(tensor2np(real_a)))
             # mask_image = transforms.ToTensor()(tensor2np(masking)).to(device)
-            print(masking)
+
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
-            save_img(tensor2img(masking[0]), "mask.png")
+            # save_img(tensor2img(mask_image), "mask.png")
 
-            fake_ab = torch.cat((real_a, masking), 1)
+            fake_ab = torch.cat((real_a, fake_b), 1)
             pred_fake = net_d.forward(fake_ab)
             loss_g_gan = criterionGAN(pred_fake, True)
 
