@@ -281,9 +281,9 @@ class ResidualBlock(nn.Module):
         return out 
 
 # Image Transform Network
-class ImageTransformNet(nn.Module):
+class TransformNetwork(nn.Module):
     def __init__(self):
-        super(ImageTransformNet, self).__init__()
+        super(TransformNetwork, self).__init__()
         
         # nonlineraity
         self.relu = nn.ReLU()
