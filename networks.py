@@ -291,34 +291,34 @@ class TransformNetwork(nn.Module):
         self.tanh = nn.Tanh()
 
         # encoding layers
-        self.conv1 = ConvLayer(3, 64, kernel_size=9, stride=1)
-        self.in1_e = nn.BatchNorm2d(64, affine=True)
+        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
+        self.in1_e = nn.BatchNorm2d(32, affine=True)
 
-        self.conv2 = ConvLayer(64, 128, kernel_size=3, stride=2)
-        self.in2_e = nn.BatchNorm2d(128, affine=True)
+        self.conv2 = ConvLayer(32, 64, kernel_size=3, stride=2)
+        self.in2_e = nn.BatchNorm2d(64, affine=True)
 
-        self.conv3 = ConvLayer(128, 256, kernel_size=3, stride=2)
-        self.in3_e = nn.BatchNorm2d(256, affine=True)
+        self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
+        self.in3_e = nn.BatchNorm2d(128, affine=True)
 
         # residual layers
-        self.res1 = ResidualBlock(256)
-        self.res2 = ResidualBlock(256)
-        self.res3 = ResidualBlock(256)
-        self.res4 = ResidualBlock(256)
-        self.res5 = ResidualBlock(256)
-        self.res6 = ResidualBlock(256)
-        self.res7 = ResidualBlock(256)
-        self.res8 = ResidualBlock(256)
-        self.res9 = ResidualBlock(256)
+        self.res1 = ResidualBlock(128)
+        self.res2 = ResidualBlock(128)
+        self.res3 = ResidualBlock(128)
+        self.res4 = ResidualBlock(128)
+        self.res5 = ResidualBlock(128)
+        self.res6 = ResidualBlock(128)
+        self.res7 = ResidualBlock(128)
+        self.res8 = ResidualBlock(128)
+        self.res9 = ResidualBlock(128)
 
         # decoding layers
-        self.deconv3 = UpsampleConvLayer(256, 128, kernel_size=3, stride=1, upsample=2 )
-        self.in3_d = nn.BatchNorm2d(128, affine=True)
+        self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
+        self.in3_d = nn.BatchNorm2d(64, affine=True)
 
-        self.deconv2 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
-        self.in2_d = nn.BatchNorm2d(64, affine=True)
+        self.deconv2 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2 )
+        self.in2_d = nn.BatchNorm2d(32, affine=True)
 
-        self.deconv1 = UpsampleConvLayer(64, 3, kernel_size=9, stride=1)
+        self.deconv1 = UpsampleConvLayer(32, 3, kernel_size=9, stride=1)
         self.in1_d = nn.BatchNorm2d(3, affine=True)
 
     def forward(self, x):
@@ -572,7 +572,7 @@ class NLayerDiscriminator(nn.Module):
             return self.model(input)
 
 class GANLoss(nn.Module):
-    def __init__(self, use_lsgan=True, target_real_label=0.9, target_fake_label=0.0,
+    def __init__(self, use_lsgan=True, target_real_label=1.0, target_fake_label=0.0,
                  tensor=torch.cuda.FloatTensor):
         super(GANLoss, self).__init__()
         self.real_label = target_real_label
