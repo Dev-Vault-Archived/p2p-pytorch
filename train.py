@@ -270,9 +270,6 @@ if __name__ == '__main__':
             # forward
             real_a, real_b = batch[0].to(device), batch[1].to(device)
             # Generate fake real image
-            if False in torch.isfinite(real_a):
-                print('whaat?')
-
             fake_b = net_g(real_a)
 
             # Updating Detection network (Discriminator)
@@ -309,14 +306,14 @@ if __name__ == '__main__':
             # Masking real_a and fake_b
 
             # First, G(A) should fake the discriminator
-            masking = np.bitwise_and(tensor2img(fake_b), tensor2img(real_a))
-            mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
+            masking = torch.bitwise_and(fake_b, real_a)
+            # mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
 
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
             # save_img(mask_image.detach().squeeze(0).cpu(), "mask.png")
 
-            fake_ab = torch.cat((real_a, mask_image), 1)
+            fake_ab = torch.cat((real_a, masking), 1)
             pred_fake = net_d.forward(fake_ab)
             loss_g_gan = criterionGAN(pred_fake, True)
 
