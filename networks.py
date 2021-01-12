@@ -80,11 +80,13 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
 def define_G(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
     net = None
 
-    norm_layer = get_norm_layer(norm_type='batch')
+    # norm_layer = get_norm_layer(norm_type='batch')
     # net = ResnetGenerator(3, 3, 64, norm_layer=norm_layer, use_dropout=True, n_blocks=9)
     net = TransformNetwork()
+    net.to(gpu_id)
 
-    return init_net(net, init_type, init_gain, gpu_id)
+    return net
+    # return init_net(net, init_type, init_gain, gpu_id)
 
 # Defines the generator that consists of Resnet blocks between a few
 # downsampling/upsampling operations.
