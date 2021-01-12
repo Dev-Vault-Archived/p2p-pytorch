@@ -7,7 +7,7 @@ from torchvision.transforms import ToTensor
 import torch.nn.functional as F
 
 from PIL import Image
-from multiprocessing import Pool
+# from multiprocessing import Pool
 from tqdm import tqdm
 
 from skimage.metrics import structural_similarity
@@ -90,6 +90,7 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, upsamplin
         imgs = tensor2img(compress(ToTensor()(img_patches[i]), 3))
 
         if ssim(imgs, img) > 0.75:
+            print('skipped?')
             # Dataset kita pilah yang memiliki hasil compressan SSIM lebih dari 0.75 maka akan di skip
             # supaya kita mendapatkan dataset yang pas semuanya tidak ngasalan
             continue
