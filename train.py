@@ -20,6 +20,7 @@ from skimage.metrics import structural_similarity
 from PIL import Image
 from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss, sobelLayer
 from data import get_training_set, get_test_set
+from utils import save_img
 
 import warnings
 
@@ -320,11 +321,11 @@ if __name__ == '__main__':
 
             # First, G(A) should fake the discriminator
             masking = torch.bitwise_and(torch.from_numpy(tensor2np(fake_b_nograd)), torch.from_numpy(tensor2np(real_a)))
-            # mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
+            mask_image = transforms.ToTensor()(masking).to(device)
 
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
-            # save_img(mask_image.detach().squeeze(0).cpu(), "mask.png")
+            save_img(masking, "mask.png")
 
             fake_ab = torch.cat((real_a, masking), 1)
             pred_fake = net_d.forward(fake_ab)
