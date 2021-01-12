@@ -365,6 +365,9 @@ if __name__ == '__main__':
 
             optimizer_g.step()
             
+            for name,param in net_g.named_parameters():
+                print(name," ",param.data)
+
             sum_d_loss += loss_d.item()
             sum_g_loss += loss_g_gan.item()
             sum_gfeat_loss += loss_G_GAN_Feat.item()
@@ -380,7 +383,7 @@ if __name__ == '__main__':
             if iteration == data_len:
                 # Pass for now
                 pass
-
+            
             bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [A: %.6f] [C: %.6f] [S: %.6f] [TV: %.6f] [Tot: %.6f]' %(
                 iteration,
                 data_len,
