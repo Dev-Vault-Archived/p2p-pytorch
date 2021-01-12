@@ -234,7 +234,7 @@ class ConvLayer(nn.Module):
         super(ConvLayer, self).__init__()
         padding = kernel_size // 2
         self.reflection_pad = nn.ReflectionPad2d(padding)
-        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride) #, padding)
+        self.conv2d = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride) #, padding)
 
     def forward(self, x):
         out = self.reflection_pad(x)
@@ -250,7 +250,7 @@ class UpsampleConvLayer(nn.Module):
             self.upsample = nn.Upsample(scale_factor=upsample, mode='nearest')
         reflection_padding = kernel_size // 2
         self.reflection_pad = nn.ReflectionPad2d(reflection_padding)
-        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride)
+        self.conv2d = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride)
 
     def forward(self, x):
         if self.upsample:
@@ -305,10 +305,10 @@ class TransformNetwork(nn.Module):
         self.res3 = ResidualBlock(128)
         self.res4 = ResidualBlock(128)
         self.res5 = ResidualBlock(128)
-        # self.res6 = ResidualBlock(128)
-        # self.res7 = ResidualBlock(128)
-        # self.res8 = ResidualBlock(128)
-        # self.res9 = ResidualBlock(128)
+        self.res6 = ResidualBlock(128)
+        self.res7 = ResidualBlock(128)
+        self.res8 = ResidualBlock(128)
+        self.res9 = ResidualBlock(128)
 
         # decoding layers
         self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
@@ -332,10 +332,10 @@ class TransformNetwork(nn.Module):
         y = self.res3(y)
         y = self.res4(y)
         y = self.res5(y)
-        # y = self.res6(y)
-        # y = self.res7(y)
-        # y = self.res8(y)
-        # y = self.res9(y)
+        y = self.res6(y)
+        y = self.res7(y)
+        y = self.res8(y)
+        y = self.res9(y)
 
         # decode
         y = self.relu(self.in3_d(self.deconv3(y)))
