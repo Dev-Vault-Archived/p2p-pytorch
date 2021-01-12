@@ -20,6 +20,7 @@ from skimage.metrics import structural_similarity
 from PIL import Image
 from networks import define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss, sobelLayer
 from data import get_training_set, get_test_set
+from utils import save_img
 
 import warnings
 
@@ -27,13 +28,16 @@ warnings.filterwarnings("ignore")
 
 mse_criterion = torch.nn.MSELoss(reduction='mean')
 
-def tensor2img(tensor):
+def tensor2numpy(tensor):
     tensor = tensor.cpu()
     tensor = tensor.detach().numpy()
     tensor = np.squeeze(tensor)
     tensor = np.moveaxis(tensor, 0, 2)
     tensor = tensor * 255
     tensor = tensor.clip(0, 255).astype(np.uint8)
+
+def tensor2img(tensor):
+    tensor = tensor2numpy(tensor)
     
     img = Image.fromarray(tensor)
     return img
@@ -307,15 +311,13 @@ if __name__ == '__main__':
             # Masking real_a and fake_b
 
             fake_b_nograd = Variable(fake_b, requires_grad=False)
-            print(fake_b_nograd)
-            print(real_a)
             # First, G(A) should fake the discriminator
-            masking = torch.bitwise_and(fake_b_nograd, real_a)
-            # mask_image = transforms.ToTensor()(masking).unsqueeze_(0).to(device)
+            masking = torch.bitwise_and(torch.tensor(tensor2numpy(fake_b_nograd)), torch.tensor(tensor2numpy(real_a)))
+            mask_image = transforms.ToTensor()(masking).to(device)
 
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
-            # save_img(mask_image.detach().squeeze(0).cpu(), "mask.png")
+            save_img(mask_image.detach().cpu(), "mask.png")
 
             fake_ab = torch.cat((real_a, masking), 1)
             pred_fake = net_d.forward(fake_ab)
