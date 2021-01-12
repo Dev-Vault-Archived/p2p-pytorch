@@ -249,8 +249,8 @@ class DeConvLayer(nn.Module):
         self.conv2d = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding=padding) #, padding)
 
     def forward(self, x):
-        out = self.reflection_pad(x)
-        out = self.conv2d(out)
+        # out = self.reflection_pad(x)
+        out = self.conv2d(x)
         return out
 
 # Upsample Conv Layer
