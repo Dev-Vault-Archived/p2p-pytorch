@@ -287,7 +287,7 @@ class TransformNetwork(nn.Module):
         
         # nonlineraity
         self.relu = nn.ReLU()
-        self.leakyRelu = nn.LeakyReLU(negative_slope=0.25)
+        # self.leakyRelu = nn.LeakyReLU(negative_slope=0.25)
         self.tanh = nn.Tanh()
 
         # encoding layers
@@ -339,8 +339,8 @@ class TransformNetwork(nn.Module):
         y = self.res9(y)
 
         # decode
-        y = self.leakyRelu(self.in3_d(self.deconv3(y)))
-        y = self.leakyRelu(self.in2_d(self.deconv2(y)))
+        y = self.relu(self.in3_d(self.deconv3(y)))
+        y = self.relu(self.in2_d(self.deconv2(y)))
         y = self.tanh(self.in1_d(self.deconv1(y)))
         # y = self.deconv1(y)
 
