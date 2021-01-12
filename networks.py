@@ -228,129 +228,246 @@ def define_G(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
 #         x = self.outconv(x)
 #         return x
 
-class TransformNetwork(nn.Module):    
-    def __init__(self):        
-        super(TransformNetwork, self).__init__()        
-        
-        self.layers = nn.Sequential(            
-            ConvLayer(3, 64, 9, 1),
-            ConvLayer(64, 128, 3, 2),
-            ConvLayer(128, 256, 3, 2),
-            
-            ResidualLayer(256, 256, 3, 1),
-            ResidualLayer(256, 256, 3, 1),
-            ResidualLayer(256, 256, 3, 1),
-            ResidualLayer(256, 256, 3, 1),
-            ResidualLayer(256, 256, 3, 1),
-            ResidualLayer(256, 256, 3, 1),
-            ResidualLayer(256, 256, 3, 1),
-            ResidualLayer(256, 256, 3, 1),
-            ResidualLayer(256, 256, 3, 1),
-            
-            DeconvLayer(256, 128, 3, 1),
-            DeconvLayer(128, 64, 3, 1),
-            ConvLayer(64, 3, 9, 1, activation='tanh'))
-        
-    def forward(self, x):
-        return self.layers(x)
-
-class ConvLayer(nn.Module):    
-    def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', activation='relu', normalization='batch'):        
+# Conv Layer
+class ConvLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride):
         super(ConvLayer, self).__init__()
-        
-        # padding
-        if pad == 'reflect':            
-            self.pad = nn.ReflectionPad2d(kernel_size//2)
-        elif pad == 'zero':
-            self.pad = nn.ZeroPad2d(kernel_size//2)
-        else:
-            raise NotImplementedError("Not expected pad flag !!!")
-            
-        # convolution
-        self.conv_layer = nn.Conv2d(in_ch, out_ch, 
-                                    kernel_size=kernel_size,
-                                    stride=stride)
-        
-        # activation
-        if activation == 'relu':
-            self.activation = nn.ReLU(True)        
-        elif activation == 'linear':
-            self.activation = lambda x : x
-        elif activation == 'tanh':
-            self.activation = nn.Tanh()
-        else:
-            raise NotImplementedError("Not expected activation flag !!!")
-
-        # normalization 
-        if normalization == 'instance':            
-            self.normalization = nn.InstanceNorm2d(out_ch, affine=True)
-        elif normalization == 'batch':
-            self.normalization = nn.BatchNorm2d(out_ch, affine=True)
-        else:
-            raise NotImplementedError("Not expected normalization flag !!!")
+        padding = kernel_size // 2
+        self.reflection_pad = nn.ReflectionPad2d(padding)
+        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride) #, padding)
 
     def forward(self, x):
-        x = self.pad(x)
-        x = self.conv_layer(x)
-        x = self.normalization(x)
-        x = self.activation(x)        
-        return x
+        out = self.reflection_pad(x)
+        out = self.conv2d(out)
+        return out
 
-class ResidualLayer(nn.Module):    
-    def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', normalization='batch'):        
-        super(ResidualLayer, self).__init__()
-        
-        self.conv1 = ConvLayer(in_ch, out_ch, kernel_size, stride, pad, 
-                               activation='relu', 
-                               normalization=normalization)
-        
-        self.conv2 = ConvLayer(out_ch, out_ch, kernel_size, stride, pad, 
-                               activation='linear', 
-                               normalization=normalization)
-        
-    def forward(self, x):
-        y = self.conv1(x)
-        return self.conv2(y) + x
-        
-class DeconvLayer(nn.Module):    
-    def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', activation='relu', normalization='batch', upsample='nearest'):        
-        super(DeconvLayer, self).__init__()
-        
-        # upsample
+# Upsample Conv Layer
+class UpsampleConvLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, upsample=None):
+        super(UpsampleConvLayer, self).__init__()
         self.upsample = upsample
-        
-        # pad
-        if pad == 'reflect':            
-            self.pad = nn.ReflectionPad2d(kernel_size//2)
-        elif pad == 'zero':
-            self.pad = nn.ZeroPad2d(kernel_size//2)
-        else:
-            raise NotImplementedError("Not expected pad flag !!!")        
-        
-        # conv
-        self.conv = nn.Conv2d(in_ch, out_ch, kernel_size, stride)
-        
-        # activation
-        if activation == 'relu':
-            self.activation = nn.ReLU()
-        else:
-            raise NotImplementedError("Not expected activation flag !!!")
-        
-        # normalization
-        if normalization == 'instance':
-            self.normalization = nn.InstanceNorm2d(out_ch, affine=True)
-        elif normalization == 'batch':
-            self.normalization = nn.BatchNorm2d(out_ch, affine=True)
-        else:
-            raise NotImplementedError("Not expected normalization flag !!!")
-        
+        if upsample:
+            self.upsample = nn.Upsample(scale_factor=upsample, mode='nearest')
+        reflection_padding = kernel_size // 2
+        self.reflection_pad = nn.ReflectionPad2d(reflection_padding)
+        self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride)
+
     def forward(self, x):
-        x = nn.functional.interpolate(x, scale_factor=2, mode=self.upsample)        
-        x = self.pad(x)
-        x = self.conv(x)
-        x = self.normalization(x)        
-        x = self.activation(x)        
-        return x
+        if self.upsample:
+            x = self.upsample(x)
+        out = self.reflection_pad(x)
+        out = self.conv2d(out)
+        return out
+
+# Residual Block
+#   adapted from pytorch tutorial
+#   https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-
+#   intermediate/deep_residual_network/main.py
+class ResidualBlock(nn.Module):
+    def __init__(self, channels):
+        super(ResidualBlock, self).__init__()
+        self.conv1 = ConvLayer(channels, channels, kernel_size=3, stride=1)
+        self.in1 = nn.BatchNorm2d(channels, affine=True)
+        self.relu = nn.ReLU()
+        self.conv2 = ConvLayer(channels, channels, kernel_size=3, stride=1)
+        self.in2 = nn.BatchNorm2d(channels, affine=True)
+
+    def forward(self, x):
+        residual = x
+        out = self.relu(self.in1(self.conv1(x)))
+        out = self.in2(self.conv2(out))
+        out = out + residual
+        out = self.relu(out)
+        return out 
+
+# Image Transform Network
+class ImageTransformNet(nn.Module):
+    def __init__(self):
+        super(ImageTransformNet, self).__init__()
+        
+        # nonlineraity
+        self.relu = nn.ReLU()
+        self.tanh = nn.Tanh()
+
+        # encoding layers
+        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
+        self.in1_e = nn.BatchNorm2d(32, affine=True)
+
+        self.conv2 = ConvLayer(32, 64, kernel_size=3, stride=2)
+        self.in2_e = nn.BatchNorm2d(64, affine=True)
+
+        self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
+        self.in3_e = nn.BatchNorm2d(128, affine=True)
+
+        # residual layers
+        self.res1 = ResidualBlock(128)
+        self.res2 = ResidualBlock(128)
+        self.res3 = ResidualBlock(128)
+        self.res4 = ResidualBlock(128)
+        self.res5 = ResidualBlock(128)
+        self.res6 = ResidualBlock(128)
+        self.res7 = ResidualBlock(128)
+        self.res8 = ResidualBlock(128)
+        self.res9 = ResidualBlock(128)
+
+        # decoding layers
+        self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
+        self.in3_d = nn.BatchNorm2d(64, affine=True)
+
+        self.deconv2 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2 )
+        self.in2_d = nn.BatchNorm2d(32, affine=True)
+
+        self.deconv1 = UpsampleConvLayer(32, 3, kernel_size=9, stride=1)
+        self.in1_d = nn.BatchNorm2d(3, affine=True)
+
+    def forward(self, x):
+        # encode
+        y = self.relu(self.in1_e(self.conv1(x)))
+        y = self.relu(self.in2_e(self.conv2(y)))
+        y = self.relu(self.in3_e(self.conv3(y)))
+
+        # residual layers
+        y = self.res1(y)
+        y = self.res2(y)
+        y = self.res3(y)
+        y = self.res4(y)
+        y = self.res5(y)
+        y = self.res6(y)
+        y = self.res7(y)
+        y = self.res8(y)
+        y = self.res9(y)
+
+        # decode
+        y = self.relu(self.in3_d(self.deconv3(y)))
+        y = self.relu(self.in2_d(self.deconv2(y)))
+        y = self.tanh(self.in1_d(self.deconv1(y)))
+        # y = self.deconv1(y)
+
+        return y
+
+# class TransformNetwork(nn.Module):    
+#     def __init__(self):        
+#         super(TransformNetwork, self).__init__()        
+        
+#         self.layers = nn.Sequential(            
+#             ConvLayer(3, 32, 9, 1),
+#             ConvLayer(32, 64, 3, 2),
+#             ConvLayer(64, 128, 3, 2),
+            
+#             ResidualLayer(128, 128, 3, 1),
+#             ResidualLayer(128, 128, 3, 1),
+#             ResidualLayer(128, 128, 3, 1),
+#             ResidualLayer(128, 128, 3, 1),
+#             ResidualLayer(128, 128, 3, 1),
+#             ResidualLayer(128, 128, 3, 1),
+#             ResidualLayer(128, 128, 3, 1),
+#             ResidualLayer(128, 128, 3, 1),
+#             ResidualLayer(128, 128, 3, 1),
+            
+#             DeconvLayer(128, 64, 3, 1),
+#             DeconvLayer(64, 32, 3, 1),
+#             ConvLayer(32, 3, 9, 1, activation='tanh'))
+        
+#     def forward(self, x):
+#         return self.layers(x)
+
+# class ConvLayer(nn.Module):    
+#     def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', activation='relu', normalization='batch'):        
+#         super(ConvLayer, self).__init__()
+        
+#         # padding
+#         if pad == 'reflect':            
+#             self.pad = nn.ReflectionPad2d(kernel_size//2)
+#         elif pad == 'zero':
+#             self.pad = nn.ZeroPad2d(kernel_size//2)
+#         else:
+#             raise NotImplementedError("Not expected pad flag !!!")
+            
+#         # convolution
+#         self.conv_layer = nn.Conv2d(in_ch, out_ch, 
+#                                     kernel_size=kernel_size,
+#                                     stride=stride)
+        
+#         # activation
+#         if activation == 'relu':
+#             self.activation = nn.ReLU()        
+#         elif activation == 'linear':
+#             self.activation = lambda x : x
+#         elif activation == 'tanh':
+#             self.activation = nn.Tanh(True)
+#         else:
+#             raise NotImplementedError("Not expected activation flag !!!")
+
+#         # normalization 
+#         if normalization == 'instance':            
+#             self.normalization = nn.InstanceNorm2d(out_ch, affine=True)
+#         elif normalization == 'batch':
+#             self.normalization = nn.BatchNorm2d(out_ch, affine=True)
+#         else:
+#             raise NotImplementedError("Not expected normalization flag !!!")
+
+#     def forward(self, x):
+#         x = self.pad(x)
+#         x = self.conv_layer(x)
+#         x = self.normalization(x)
+#         x = self.activation(x)        
+#         return x
+
+# class ResidualLayer(nn.Module):    
+#     def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', normalization='batch'):        
+#         super(ResidualLayer, self).__init__()
+        
+#         self.conv1 = ConvLayer(in_ch, out_ch, kernel_size, stride, pad, 
+#                                activation='relu', 
+#                                normalization=normalization)
+        
+#         self.conv2 = ConvLayer(out_ch, out_ch, kernel_size, stride, pad, 
+#                                activation='linear', 
+#                                normalization=normalization)
+        
+#     def forward(self, x):
+#         y = self.conv1(x)
+#         return self.conv2(y) + x
+        
+# class DeconvLayer(nn.Module):    
+#     def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', activation='relu', normalization='batch', upsample='nearest'):        
+#         super(DeconvLayer, self).__init__()
+        
+#         # upsample
+#         self.upsample = upsample
+        
+#         # pad
+#         if pad == 'reflect':            
+#             self.pad = nn.ReflectionPad2d(kernel_size//2)
+#         elif pad == 'zero':
+#             self.pad = nn.ZeroPad2d(kernel_size//2)
+#         else:
+#             raise NotImplementedError("Not expected pad flag !!!")        
+        
+#         # conv
+#         self.conv = nn.Conv2d(in_ch, out_ch, kernel_size, stride)
+        
+#         # activation
+#         if activation == 'relu':
+#             self.activation = nn.ReLU()
+#         else:
+#             raise NotImplementedError("Not expected activation flag !!!")
+        
+#         # normalization
+#         if normalization == 'instance':
+#             self.normalization = nn.InstanceNorm2d(out_ch, affine=True)
+#         elif normalization == 'batch':
+#             self.normalization = nn.BatchNorm2d(out_ch, affine=True)
+#         else:
+#             raise NotImplementedError("Not expected normalization flag !!!")
+        
+#     def forward(self, x):
+#         x = nn.functional.interpolate(x, scale_factor=2, mode=self.upsample)        
+#         x = self.pad(x)
+#         x = self.conv(x)
+#         x = self.normalization(x)        
+#         x = self.activation(x)        
+#         return x
 
 def define_D(input_nc, ndf, norm='batch', use_sigmoid=False, init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
     net = None
