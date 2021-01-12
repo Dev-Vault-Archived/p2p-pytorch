@@ -241,18 +241,6 @@ class ConvLayer(nn.Module):
         out = self.conv2d(out)
         return out
 
-class DeConvLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride):
-        super(DeConvLayer, self).__init__()
-        padding = kernel_size // 2
-        # self.reflection_pad = nn.ReflectionPad2d(padding)
-        self.conv2d = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding=padding) #, padding)
-
-    def forward(self, x):
-        # out = self.reflection_pad(x)
-        out = self.conv2d(x)
-        return out
-
 # Upsample Conv Layer
 class UpsampleConvLayer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, upsample=None):
@@ -280,16 +268,16 @@ class ResidualBlock(nn.Module):
         super(ResidualBlock, self).__init__()
         self.conv1 = ConvLayer(channels, channels, kernel_size=3, stride=1)
         self.in1 = nn.BatchNorm2d(channels, affine=True)
-        self.relu = nn.ReLU()
+        self.leakly = nn.LeakyReLU(negative_slope=0.25)
         self.conv2 = ConvLayer(channels, channels, kernel_size=3, stride=1)
         self.in2 = nn.BatchNorm2d(channels, affine=True)
 
     def forward(self, x):
         residual = x
-        out = self.relu(self.in1(self.conv1(x)))
+        out = self.leakly(self.in1(self.conv1(x)))
         out = self.in2(self.conv2(out))
         out = out + residual
-        out = self.relu(out)
+        out = self.leakly(out)
         return out 
 
 # Image Transform Network
@@ -299,16 +287,17 @@ class TransformNetwork(nn.Module):
         
         # nonlineraity
         self.relu = nn.ReLU()
+        self.leakly = nn.LeakyReLU(negative_slope=0.25)
         self.tanh = nn.Tanh()
 
         # encoding layers
-        self.conv1 = DeConvLayer(3, 32, kernel_size=9, stride=1)
+        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
         self.in1_e = nn.BatchNorm2d(32, affine=True)
 
-        self.conv2 = DeConvLayer(32, 64, kernel_size=3, stride=2)
+        self.conv2 = ConvLayer(32, 64, kernel_size=3, stride=2)
         self.in2_e = nn.BatchNorm2d(64, affine=True)
 
-        self.conv3 = DeConvLayer(64, 128, kernel_size=3, stride=2)
+        self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
         self.in3_e = nn.BatchNorm2d(128, affine=True)
 
         # residual layers
@@ -334,9 +323,9 @@ class TransformNetwork(nn.Module):
 
     def forward(self, x):
         # encode
-        y = self.relu(self.in1_e(self.conv1(x)))
-        y = self.relu(self.in2_e(self.conv2(y)))
-        y = self.relu(self.in3_e(self.conv3(y)))
+        y = self.leakly(self.in1_e(self.conv1(x)))
+        y = self.leakly(self.in2_e(self.conv2(y)))
+        y = self.leakly(self.in3_e(self.conv3(y)))
 
         # residual layers
         y = self.res1(y)
@@ -350,8 +339,8 @@ class TransformNetwork(nn.Module):
         y = self.res9(y)
 
         # decode
-        y = self.relu(self.in3_d(self.deconv3(y)))
-        y = self.relu(self.in2_d(self.deconv2(y)))
+        y = self.leakly(self.in3_d(self.deconv3(y)))
+        y = self.leakly(self.in2_d(self.deconv2(y)))
         y = self.tanh(self.in1_d(self.deconv1(y)))
         # y = self.deconv1(y)
 
