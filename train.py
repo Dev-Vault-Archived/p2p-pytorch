@@ -274,7 +274,7 @@ if __name__ == '__main__':
         # sum_sobel_loss = 0
 
         sum_perp_loss = 0
-        sum_style_loss = 0
+        # sum_style_loss = 0
         sum_tv_loss = 0
 
         net_g.train()
@@ -364,17 +364,17 @@ if __name__ == '__main__':
             # loss_g += perp_loss * 10
 
             target_content_features = extract_features(criterionVGG, real_b, [15])
-            target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
+            # target_style_features = extract_features(criterionVGG, real_b, [3, 8, 15, 22]) 
 
             output_content_features = extract_features(criterionVGG, fake_b, [15])
-            output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
+            # output_style_features = extract_features(criterionVGG, fake_b, [3, 8, 15, 22])
 
-            style_loss = calc_Gram_Loss(output_style_features, target_style_features)
+            # style_loss = calc_Gram_Loss(output_style_features, target_style_features)
             content_loss = calc_c_loss(output_content_features, target_content_features)
             tv_loss = calc_tv_Loss(fake_b)
 
-            # # loss_g += content_loss * 1.0 + tv_loss * 1.0
-            loss_g += content_loss * 30.0 + style_loss * 1.0 + tv_loss * 1.0
+            loss_g += content_loss * 30.0 + tv_loss * 1.0
+            # loss_g += content_loss * 30.0 + style_loss * 1.0 + tv_loss * 1.0
             # loss_g += style_loss * 10.0
 
             loss_g.backward()
@@ -387,7 +387,7 @@ if __name__ == '__main__':
             sum_angular_loss += loss_G_Ang.item()
             # sum_sobel_loss += loss_sobelL1.item()
             sum_perp_loss += content_loss.item()
-            sum_style_loss += style_loss.item()
+            # sum_style_loss += style_loss.item()
             sum_tv_loss += tv_loss.item()
 
             sum_tot_g_loss += loss_g.item()
@@ -397,7 +397,7 @@ if __name__ == '__main__':
                 # Pass for now
                 pass
             
-            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [A: %.6f] [C: %.6f] [S: %.6f] [TV: %.6f] [Tot: %.6f]' %(
+            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [A: %.6f] [C: %.6f] [TV: %.6f] [Tot: %.6f]' %(
                 iteration,
                 data_len,
                 epoch,
@@ -408,7 +408,7 @@ if __name__ == '__main__':
                 sum_angular_loss/max(1, iteration),
                 # sum_sobel_loss/max(1, iteration),
                 sum_perp_loss/max(1, iteration),
-                sum_style_loss/max(1, iteration),
+                # sum_style_loss/max(1, iteration),
                 sum_tv_loss/max(1, iteration),
                 sum_tot_g_loss/max(1, iteration),
             ))
