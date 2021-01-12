@@ -430,6 +430,8 @@ if __name__ == '__main__':
         max_psnr = 0
         max_ssim = 0
 
+        has_good = False
+
         net_g.eval()
         net_d.eval()
         for batch in testing_data_loader:
@@ -450,9 +452,11 @@ if __name__ == '__main__':
                 # change the infinity to some number
                 peesneen = 60.0
 
-            if (esesim >= 1.0 or peesneen >= Inf):
+            if (has_good == False and (esesim >= 1.0 or peesneen >= Inf)):
                 save_img(input.detach().squeeze(0).cpu(), "whit?.png")
                 save_img(prediction.detach().squeeze(0).cpu(), "what?.png")
+
+                has_good = True
 
             max_psnr = max(max_psnr, peesneen)
             max_ssim = max(max_ssim, esesim)
