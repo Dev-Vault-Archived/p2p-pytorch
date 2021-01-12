@@ -368,7 +368,7 @@ if __name__ == '__main__':
             
             sum_d_loss += loss_d.item()
             sum_g_loss += loss_g_gan.item()
-            sum_gfeat_loss += loss_G_GAN_Feat.item()
+            # sum_gfeat_loss += loss_G_GAN_Feat.item()
             sum_angular_loss += loss_G_Ang.item()
             # sum_sobel_loss += loss_sobelL1.item()
             sum_perp_loss += content_loss.item()
