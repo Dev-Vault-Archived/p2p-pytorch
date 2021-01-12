@@ -270,6 +270,7 @@ if __name__ == '__main__':
             # forward
             real_a, real_b = batch[0].to(device), batch[1].to(device)
             # Generate fake real image
+            print(torch.isfinite(real_a))
             fake_b = net_g(real_a)
 
             # Updating Detection network (Discriminator)
@@ -364,9 +365,6 @@ if __name__ == '__main__':
             loss_g.backward()
 
             optimizer_g.step()
-            
-            for name,param in net_g.named_parameters():
-                print(name," ",param.data)
 
             sum_d_loss += loss_d.item()
             sum_g_loss += loss_g_gan.item()
