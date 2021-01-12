@@ -10,6 +10,14 @@ from PIL import Image
 from multiprocessing import Pool
 from tqdm import tqdm
 
+from skimage.metrics import structural_similarity
+
+def ssim(image_out, image_ref):
+    image_out = np.array(image_out, dtype='float')
+    image_ref = np.array(image_ref, dtype='float')
+
+    return structural_similarity(image_out, image_ref, multichannel=True)
+
 def mkdir(directory, mode=0o777):
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -76,10 +84,15 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, upsamplin
     
     # print('Cropped')
 
-    for i in range(min(len(img_patches), 3)):
+    for i in range(min(len(img_patches), 5)):
         img = Image.fromarray(img_patches[i])
         # print(np.asarray(compress(torch.Tensor(img_patches[0]), 4) * (2**4 - 1)))
         imgs = tensor2img(compress(ToTensor()(img_patches[i]), 3))
+
+        if ssim(imgs, img) > 0.75:
+            # Dataset kita pilah yang memiliki hasil compressan SSIM lebih dari 0.75 maka akan di skip
+            # supaya kita mendapatkan dataset yang pas semuanya tidak ngasalan
+            continue
 
         # print('Compressed')
 
