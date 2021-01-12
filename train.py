@@ -450,6 +450,10 @@ if __name__ == '__main__':
                 # change the infinity to some number
                 peesneen = 60.0
 
+            if (esesim >= 1.0 or peesneen >= Inf):
+                save_img(input.detach().squeeze(0).cpu(), "whit?.png")
+                save_img(prediction.detach().squeeze(0).cpu(), "what?.png")
+
             max_psnr = max(max_psnr, peesneen)
             max_ssim = max(max_ssim, esesim)
 
