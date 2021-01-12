@@ -233,23 +233,23 @@ class TransformNetwork(nn.Module):
         super(TransformNetwork, self).__init__()        
         
         self.layers = nn.Sequential(            
-            ConvLayer(3, 32, 9, 1),
-            ConvLayer(32, 64, 3, 2),
+            ConvLayer(3, 64, 9, 1),
             ConvLayer(64, 128, 3, 2),
+            ConvLayer(128, 256, 3, 2),
             
-            ResidualLayer(128, 128, 3, 1),
-            ResidualLayer(128, 128, 3, 1),
-            ResidualLayer(128, 128, 3, 1),
-            ResidualLayer(128, 128, 3, 1),
-            ResidualLayer(128, 128, 3, 1),
-            ResidualLayer(128, 128, 3, 1),
-            ResidualLayer(128, 128, 3, 1),
-            ResidualLayer(128, 128, 3, 1),
-            ResidualLayer(128, 128, 3, 1),
+            ResidualLayer(256, 256, 3, 1),
+            ResidualLayer(256, 256, 3, 1),
+            ResidualLayer(256, 256, 3, 1),
+            ResidualLayer(256, 256, 3, 1),
+            ResidualLayer(256, 256, 3, 1),
+            ResidualLayer(256, 256, 3, 1),
+            ResidualLayer(256, 256, 3, 1),
+            ResidualLayer(256, 256, 3, 1),
+            ResidualLayer(256, 256, 3, 1),
             
+            DeconvLayer(256, 128, 3, 1),
             DeconvLayer(128, 64, 3, 1),
-            DeconvLayer(64, 32, 3, 1),
-            ConvLayer(32, 3, 9, 1, activation='tanh'))
+            ConvLayer(64, 3, 9, 1, activation='tanh'))
         
     def forward(self, x):
         return self.layers(x)
