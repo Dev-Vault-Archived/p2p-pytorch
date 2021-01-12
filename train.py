@@ -374,7 +374,7 @@ if __name__ == '__main__':
             tv_loss = calc_tv_Loss(fake_b)
 
             # # loss_g += content_loss * 1.0 + tv_loss * 1.0
-            loss_g += content_loss * 10.0 + style_loss * 2.0 + tv_loss * 1.0
+            loss_g += content_loss * 30.0 + style_loss * 1.0 + tv_loss * 1.0
             # loss_g += style_loss * 10.0
 
             loss_g.backward()
