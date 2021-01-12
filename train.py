@@ -325,7 +325,7 @@ if __name__ == '__main__':
             print(masking)
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
-            # save_img(tensor2img(mask_image), "mask.png")
+            save_img(tensor2img(masking[0]), "mask.png")
 
             fake_ab = torch.cat((real_a, masking), 1)
             pred_fake = net_d.forward(fake_ab)
