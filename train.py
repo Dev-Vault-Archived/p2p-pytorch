@@ -321,7 +321,7 @@ if __name__ == '__main__':
 
             # First, G(A) should fake the discriminator
             masking = torch.bitwise_and(torch.from_numpy(tensor2np(fake_b_nograd)), torch.from_numpy(tensor2np(real_a)))
-            mask_image = transforms.ToTensor()(masking).to(device)
+            mask_image = transforms.ToTensor()(tensor2np(masking)).to(device)
 
             # save_img(fake_b.detach().squeeze(0).cpu(), "fake_b.png")
             # save_img(real_a.detach().squeeze(0).cpu(), "real_a.png")
