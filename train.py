@@ -368,7 +368,7 @@ if __name__ == '__main__':
             content_loss = criterionVGG(fake_b, real_b) * 10.0
             tv_loss = calc_tv_Loss(fake_b)
 
-            loss_g += content_loss * 1.0 + tv_loss * 1.0
+            loss_g += content_loss + tv_loss * 1.0
             # loss_g += content_loss * 30.0 + style_loss * 1.0 + tv_loss * 1.0
             # loss_g += style_loss * 10.0
 
