@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 from math import pi
 from torch.nn import init
-# import torch.nn.functional as F
+import torch.nn.functional as F
 from torch.autograd import Variable
 import functools
 # import random
@@ -154,12 +154,12 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
     init_weights(net, init_type, gain=init_gain)
     return net
 
-# def define_G(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
-#     net = None
+def define_C(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
+    net = None
 
-#     net = CompressNetwork()
+    net = CompressionNetwork()
 
-#     return init_net(net, init_type, init_gain, gpu_id)
+    return init_net(net, init_type, init_gain, gpu_id)
 
 def define_G(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
     net = None
@@ -169,6 +169,66 @@ def define_G(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
     net = ExpandNetwork()
 
     return init_net(net, init_type, init_gain, gpu_id)
+
+class CompressionNetwork(nn.Module):
+    def __init__(self):
+        super(CompressionNetwork, self).__init__()
+
+        self.conv_input = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=64),
+            nn.LeakyReLU(0.2)
+        )
+
+        self.conv_block1 = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size=3),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2)
+        )
+
+        self.conv_block2 = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size=3),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2)
+        )
+
+        self.conv_block3 = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size=3),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2)
+        )
+
+        self.conv_block4 = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size=3),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2)
+        )
+
+        self.conv_block5 = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size=3),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2)
+        )
+
+        self.pooling = nn.AvgPool2d(3, stride=2)
+        self.shuffle = nn.PixelShuffle(2)
+        pass
+
+    def forward(self, x):
+        identity = x
+        res = self.conv_input(x)
+        res = self.conv_block1(res)
+        res = self.conv_block2(res)
+        res = self.conv_block3(res)
+        res = self.conv_block4(res)
+        res = self.conv_block5(res)
+
+        res = self.pooling(res)
+        res = self.shuffle(res)
+
+        res = F.normalize(res, p=2, dim=1)
+        res = F.interpolate(res, scale_factor=2)
+
+        return identity + res
 
 # class CompressionEncoder(nn.Module):
 #     def __init__(self):
@@ -378,6 +438,35 @@ class ResidualBlock(nn.Module):
         out = self.relu(out)
         return out 
 
+def pixel_unshuffle(input, downscale_factor):
+    '''
+    input: batchSize * c * k*w * k*h
+    kdownscale_factor: k
+    batchSize * c * k*w * k*h -> batchSize * k*k*c * w * h
+    '''
+    c = input.shape[1]
+
+    kernel = torch.zeros(size=[downscale_factor * downscale_factor * c,
+                               1, downscale_factor, downscale_factor],
+                         device=input.device)
+    for y in range(downscale_factor):
+        for x in range(downscale_factor):
+            kernel[x + y * downscale_factor::downscale_factor*downscale_factor, 0, y, x] = 1
+    return F.conv2d(input, kernel, stride=downscale_factor, groups=c)
+
+class PixelUnshuffle(nn.Module):
+    def __init__(self, downscale_factor):
+        super(PixelUnshuffle, self).__init__()
+        self.downscale_factor = downscale_factor
+    def forward(self, input):
+        '''
+        input: batchSize * c * k*w * k*h
+        kdownscale_factor: k
+        batchSize * c * k*w * k*h -> batchSize * k*k*c * w * h
+        '''
+
+        return pixel_unshuffle(input, self.downscale_factor)
+
 # Image Transform Network
 class ExpandNetwork(nn.Module):
     def __init__(self):
@@ -385,7 +474,7 @@ class ExpandNetwork(nn.Module):
         
         # nonlineraity
         self.relu = nn.PReLU()
-        # self.leakyRelu = nn.LeakyReLU(0.2)
+        self.leakyRelu = nn.LeakyReLU(0.2)
         self.tanh = nn.Tanh()
 
         # encoding layers
@@ -398,8 +487,14 @@ class ExpandNetwork(nn.Module):
         self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
         self.in3_e = nn.BatchNorm2d(128, affine=True)
 
-        # self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
+        self.conv4 = ConvLayer(128, 256, kernel_size=3, stride=2)
+        self.in4_e = nn.BatchNorm2d(256, affine=True)
 
+        self.pixel = PixelUnshuffle(2)
+        self.conv4 = ConvLayer(128, 128, kernel_size=3)
+
+        # self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
+        
         # residual layers
         self.res1 = ResidualBlock(128)
         self.res2 = ResidualBlock(128)
@@ -410,6 +505,8 @@ class ExpandNetwork(nn.Module):
         self.res7 = ResidualBlock(128)
         self.res8 = ResidualBlock(128)
         self.res9 = ResidualBlock(128)
+        
+        self.deconv4 = ConvLayer(128, 128, kernel_size=3)
 
         # decoding layers
         self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
@@ -426,21 +523,25 @@ class ExpandNetwork(nn.Module):
         y = self.relu(self.in1_e(self.conv1(x)))
         y = self.relu(self.in2_e(self.conv2(y)))
         y = self.relu(self.in3_e(self.conv3(y)))
+        y = self.relu(self.in4_e(self.conv4(y)))
+
+        y = self.pixel(y)
+        y = self.leakyRelu(self.conv4(y))
 
         # residual layers
-        # residual = y
-        y = self.res1(y)
-        y = self.res2(y)
-        y = self.res3(y)
-        y = self.res4(y)
-        y = self.res5(y)
-        y = self.res6(y)
-        y = self.res7(y)
-        y = self.res8(y)
-        y = self.res9(y)
+        residual = y
+        res = self.res1(y)
+        res = self.res2(res)
+        res = self.res3(res)
+        res = self.res4(res)
+        res = self.res5(res)
+        res = self.res6(res)
+        res = self.res7(res)
+        res = self.res8(res)
+        res = self.res9(res)
 
-        # r = r + residual
-        # y = self.leakyRelu(r)
+        res = res + residual
+        y = self.leakyRelu(res)
 
         # decode
         y = self.relu(self.in3_d(self.deconv3(y)))

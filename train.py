@@ -1,5 +1,6 @@
 from __future__ import print_function
 import argparse
+from generate_dataset import compress
 import os
 from math import isnan, log10
 from numpy.core.numeric import Inf
@@ -18,7 +19,7 @@ from skimage.metrics import structural_similarity
 
 # from utils import save_img
 from PIL import Image
-from networks import ImagePool, VGGLoss, define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss, sobelLayer
+from networks import ImagePool, VGGLoss, define_C, define_G, define_D, GANLoss, get_scheduler, update_learning_rate, angular_loss, sobelLayer
 from data import get_training_set, get_test_set
 from utils import save_img
 
@@ -180,6 +181,7 @@ if __name__ == '__main__':
 
     net_g = define_G('normal', 0.02, gpu_id=device)
     net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, gpu_id=device)
+    net_c = define_C('normal', 0.02, gpu_id=device)
 
     criterionGAN = GANLoss().to(device)
     criterionFeat = nn.L1Loss().to(device)
@@ -237,8 +239,10 @@ if __name__ == '__main__':
     # setup optimizer
     optimizer_g = optim.Adam(net_g.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
     optimizer_d = optim.Adam(net_d.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+    optimizer_c = optim.Adam(net_d.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
     net_g_scheduler = get_scheduler(optimizer_g, opt)
     net_d_scheduler = get_scheduler(optimizer_d, opt)
+    net_c_scheduler = get_scheduler(optimizer_c, opt)
 
     image_pool = ImagePool(0)
 
@@ -269,6 +273,7 @@ if __name__ == '__main__':
         # losses sum
         sum_d_loss = 0
         sum_g_loss = 0
+        sum_c_loss = 0
         sum_tot_g_loss = 0
 
         sum_gfeat_loss = 0
@@ -288,11 +293,10 @@ if __name__ == '__main__':
             real_a, real_b = batch[0].to(device), batch[1].to(device)
 
             # Compression network
-            
-
+            compressed = compress(net_c(real_b), 3)
 
             # Generate fake real image
-            fake_b = net_g(real_a)
+            fake_b = net_g(compressed)
 
             # Updating Detection network (Discriminator)
             
@@ -384,6 +388,19 @@ if __name__ == '__main__':
             loss_d.backward()
             optimizer_d.step()
 
+            fake_b_aftercompress = net_g(compressed)
+            # Optimize parameter compressor
+            loss_c = mse_criterion(fake_b_aftercompress, real_b)
+            c_percp = criterionVGG(compressed, real_b) * 10.0
+
+            locc = loss_c + c_percp
+
+            # Update
+            optimizer_c.zero_grad()
+            locc.backward()
+            optimizer_c.step()
+
+            sum_c_loss += locc.item()
             sum_d_loss += loss_d.item()
             sum_g_loss += loss_g_gan.item()
             sum_gfeat_loss += loss_G_GAN_Feat.item()
@@ -400,13 +417,14 @@ if __name__ == '__main__':
                 # Pass for now
                 pass
             
-            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [C: %.6f] [TV: %.6f] [Tot: %.6f]' %(
+            bar.set_description(desc='itr: %d/%d [%3d/%3d] [DGC: %.6f/%.6f/%.6f] [GF: %.6f] [C: %.6f] [TV: %.6f] [Tot: %.6f]' %(
                 iteration,
                 data_len,
                 epoch,
                 num_epoch - 1,
                 sum_d_loss/max(1, iteration),
                 sum_g_loss/max(1, iteration),
+                sum_c_loss/max(1, iteration),
                 sum_gfeat_loss/max(1, iteration),
                 # sum_angular_loss/max(1, iteration),
                 # sum_sobel_loss/max(1, iteration),
@@ -421,6 +439,7 @@ if __name__ == '__main__':
 
         update_learning_rate(net_g_scheduler, optimizer_g)
         update_learning_rate(net_d_scheduler, optimizer_d)
+        update_learning_rate(net_c_scheduler, optimizer_c)
 
         # if epoch <= 20:
         #     sobelLambda = 100/20*epoch
