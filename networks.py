@@ -727,8 +727,6 @@ class NLayerDiscriminator(nn.Module):
         self.getIntermFeat = getIntermFeat
         self.n_layers = n_layers
 
-        norm_layer = SpectralNorm()
-
         kw = 4
         padw = int(np.ceil((kw-1.0)/2))
         sequence = [[nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw), nn.LeakyReLU(0.2, True)]]
@@ -738,14 +736,14 @@ class NLayerDiscriminator(nn.Module):
             nf_prev = nf
             nf = min(nf * 2, 512)
             sequence += [[
-                norm_layer(nn.Conv2d(nf_prev, nf, kernel_size=kw, stride=2, padding=padw)),
+                SpectralNorm(nn.Conv2d(nf_prev, nf, kernel_size=kw, stride=2, padding=padw)),
                 nn.LeakyReLU(0.2, True)
             ]]
 
         nf_prev = nf
         nf = min(nf * 2, 512)
         sequence += [[
-            norm_layer(nn.Conv2d(nf_prev, nf, kernel_size=kw, stride=1, padding=padw)),
+            SpectralNorm(nn.Conv2d(nf_prev, nf, kernel_size=kw, stride=1, padding=padw)),
             nn.LeakyReLU(0.2, True)
         ]]
 
