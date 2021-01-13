@@ -170,6 +170,34 @@ def define_G(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
 
     return init_net(net, init_type, init_gain, gpu_id)
 
+def pixel_unshuffle(input, downscale_factor):
+    '''
+    input: batchSize * c * k*w * k*h
+    kdownscale_factor: k
+    batchSize * c * k*w * k*h -> batchSize * k*k*c * w * h
+    '''
+    c = input.shape[1]
+
+    kernel = torch.zeros(size=[downscale_factor * downscale_factor * c,
+                               1, downscale_factor, downscale_factor],
+                         device=input.device)
+    for y in range(downscale_factor):
+        for x in range(downscale_factor):
+            kernel[x + y * downscale_factor::downscale_factor*downscale_factor, 0, y, x] = 1
+    return F.conv2d(input, kernel, stride=downscale_factor, groups=c)
+
+class PixelUnshuffle(nn.Module):
+    def __init__(self, downscale_factor):
+        super(PixelUnshuffle, self).__init__()
+        self.downscale_factor = downscale_factor
+    def forward(self, input):
+        '''
+        input: batchSize * c * k*w * k*h
+        kdownscale_factor: k
+        batchSize * c * k*w * k*h -> batchSize * k*k*c * w * h
+        '''
+
+        return pixel_unshuffle(input, self.downscale_factor)
 class CompressionNetwork(nn.Module):
     def __init__(self):
         super(CompressionNetwork, self).__init__()
@@ -426,6 +454,9 @@ class ExpandNetwork(nn.Module):
         self.leakyRelu = nn.LeakyReLU(0.2)
         self.tanh = nn.Tanh()
 
+        self.inversePixel = PixelUnshuffle(2)
+        self.upsclaing = nn.Upsample(scale_factor=2, mode='nearest')
+
         # encoding layers
         self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
         self.in1_e = nn.BatchNorm2d(32, affine=True)
@@ -461,7 +492,9 @@ class ExpandNetwork(nn.Module):
 
     def forward(self, x):
         # encode
-        y = self.relu(self.in1_e(self.conv1(x)))
+        y = self.inversePixel(x)
+        y = self.upsclaing(y)
+        y = self.relu(self.in1_e(self.conv1(y)))
         y = self.relu(self.in2_e(self.conv2(y)))
         y = self.relu(self.in3_e(self.conv3(y)))
 
