@@ -53,7 +53,7 @@ def tensor2img(tensor):
     img = Image.fromarray(tensor)
     return img
 
-def generate_patches(src_path, files, set_path, crop_size, img_format, upsampling):
+def generate_patches(src_path, files, set_path, crop_size, img_format, upsampling, max_patches):
     img_path = os.path.join(src_path, files)
     img = Image.open(img_path).convert('RGB')
 
@@ -84,7 +84,7 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, upsamplin
     
     # print('Cropped')
 
-    for i in range(len(img_patches)):
+    for i in range(min(len(img_patches), max_patches)):
         img = Image.fromarray(img_patches[i])
         # print(np.asarray(compress(torch.Tensor(img_patches[0]), 4) * (2**4 - 1)))
         imgs = tensor2img(compress(ToTensor()(img_patches[i]), 3))
@@ -105,7 +105,7 @@ def generate_patches(src_path, files, set_path, crop_size, img_format, upsamplin
             os.path.join(filedirb, '{}_{}.{}'.format(name, i, img_format))
         )
 
-def main(target_dataset_folder, dataset_path, bit_size, pool_size, crop_size, img_format, upsampling):
+def main(target_dataset_folder, dataset_path, bit_size, pool_size, crop_size, img_format, upsampling, max_patches):
     print('[ Creating Dataset ]')
     print('Crop Size : {}'.format(crop_size))
     print('Target       : {}'.format(target_dataset_folder))
@@ -129,7 +129,7 @@ def main(target_dataset_folder, dataset_path, bit_size, pool_size, crop_size, im
     max = len(bar)
     # pool = Pool(pool_size)
     for files in bar:
-        generate_patches(src_path, files, set_path, crop_size, img_format, upsampling)
+        generate_patches(src_path, files, set_path, crop_size, img_format, upsampling, max_patches)
 
         bar.set_description(desc='itr: %d/%d' %(
             i, max
@@ -153,6 +153,7 @@ if __name__ == '__main__':
     parser.add_argument('--target_dataset_folder', type=str, help='target folder where image saved')
     parser.add_argument('--dataset_path', type=str, help='target folder where image saved')
     parser.add_argument('--bit_size', type=int, help='target folder where image saved')
+    parser.add_argument('--max_patches', type=int, help='target folder where image saved')
     parser.add_argument('--pool_size', type=int, help='target folder where image saved')
     parser.add_argument('--crop_size', type=int, help='crop size, -1 to save whole images')
     parser.add_argument('--img_format', type=str, help='image format e.g. png')
@@ -161,4 +162,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     crop_size = [args.crop_size, args.crop_size] if args.crop_size > 0 else None 
-    main(args.target_dataset_folder, args.dataset_path, args.bit_size, args.pool_size, crop_size, args.img_format, args.upsampling)
+    main(args.target_dataset_folder, args.dataset_path, args.bit_size, args.pool_size, crop_size, args.img_format, args.upsampling, args.max_patches)
