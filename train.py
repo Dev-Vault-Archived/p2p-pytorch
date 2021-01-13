@@ -1,5 +1,6 @@
 from __future__ import print_function
 import argparse
+import random
 from generate_dataset import compress
 import os
 from math import isnan, log10
@@ -454,16 +455,22 @@ if __name__ == '__main__':
 
         has_good = False
 
+        net_c.eval()
         net_g.eval()
         net_d.eval()
+        i = 0
+        rande = random.randint(0, len(testing_data_loader))
         for batch in testing_data_loader:
             input, target = batch[0].to(device), batch[1].to(device)
 
-            prediction = net_g(input)
+            compression = compress(net_c(target), 3)
+            prediction = net_g(compression)
 
-            # save_img(input.detach().squeeze(0).cpu(), "in.png")
-            # save_img(target.detach().squeeze(0).cpu(), "tar.png")
-            # save_img(prediction.detach().squeeze(0).cpu(), "pred.png")
+            if i == rande:
+                save_img(input.detach().squeeze(0).cpu(), "in.png")
+                save_img(target.detach().squeeze(0).cpu(), "tar.png")
+                save_img(prediction.detach().squeeze(0).cpu(), "pred.png")
+                save_img(compression.detach().squeeze(0).cpu(), "comp.png")
 
             # mse = criterionMSE(prediction, target)
             # psnr = 10 * log10(1 / mse.item())
@@ -485,6 +492,8 @@ if __name__ == '__main__':
 
             psnr_list.append(peesneen)
             ssim_list.append(esesim)
+
+            i += 1
 
         print("===> Avg. PSNR: {:.4f} dB".format(np.mean(psnr_list)))
         print("===> Avg. SSIM: {:.4f}".format(np.mean(ssim_list)))
