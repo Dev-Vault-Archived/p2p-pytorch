@@ -175,37 +175,37 @@ class CompressionNetwork(nn.Module):
         super(CompressionNetwork, self).__init__()
 
         self.conv_input = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=64),
+            nn.Conv2d(3, 64, kernel_size=3, stride=1),
             nn.LeakyReLU(0.2)
         )
 
         self.conv_block1 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2)
         )
 
         self.conv_block2 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2)
         )
 
         self.conv_block3 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2)
         )
 
         self.conv_block4 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2)
         )
 
         self.conv_block5 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 24, kernel_size=2, stride=2),
+            nn.BatchNorm2d(24),
             nn.LeakyReLU(0.2)
         )
 
@@ -491,7 +491,7 @@ class ExpandNetwork(nn.Module):
         self.in4_e = nn.BatchNorm2d(256, affine=True)
 
         self.pixel = PixelUnshuffle(2)
-        self.conv4 = ConvLayer(128, 128, kernel_size=3)
+        self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
 
         # self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
         
@@ -506,7 +506,7 @@ class ExpandNetwork(nn.Module):
         self.res8 = ResidualBlock(128)
         self.res9 = ResidualBlock(128)
         
-        self.deconv4 = ConvLayer(128, 128, kernel_size=3)
+        self.deconv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
 
         # decoding layers
         self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
