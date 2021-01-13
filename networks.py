@@ -193,7 +193,7 @@ class CompressionNetwork(nn.Module):
 
         self.conv_block1 = nn.Sequential(
             ConvLayer(64, 12, kernel_size=3, stride=2),
-            nn.BatchNorm2d(64),
+            nn.BatchNorm2d(12),
             nn.LeakyReLU(0.2)
         )
 
