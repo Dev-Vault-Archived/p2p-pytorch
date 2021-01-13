@@ -180,7 +180,7 @@ class CompressionNetwork(nn.Module):
         )
 
         self.conv_block1 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=2, stride=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2)
         )
@@ -209,7 +209,7 @@ class CompressionNetwork(nn.Module):
         #     nn.LeakyReLU(0.2)
         # )
 
-        self.pooling = nn.AvgPool2d(3, stride=2)
+        self.pooling = nn.AvgPool2d(7, stride=2)
         self.shuffle = nn.PixelShuffle(2)
         pass
 
