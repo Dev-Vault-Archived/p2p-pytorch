@@ -481,8 +481,8 @@ class ExpandNetwork(nn.Module):
         self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
         self.in3_e = nn.BatchNorm2d(128, affine=True)
 
-        self.conv4 = ConvLayer(128, 256, kernel_size=3, stride=2)
-        self.in4_e = nn.BatchNorm2d(256, affine=True)
+        self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=2)
+        self.in4_e = nn.BatchNorm2d(128, affine=True)
 
         self.pixel = PixelUnshuffle(2)
         self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
