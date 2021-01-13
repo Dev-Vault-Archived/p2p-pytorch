@@ -178,6 +178,7 @@ if __name__ == '__main__':
 
     sobelLambda = 0
 
+    net_o = define_G('normal', 0.02, gpu_id=device)
     net_g = define_G('normal', 0.02, gpu_id=device)
     net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, gpu_id=device)
 
@@ -235,8 +236,10 @@ if __name__ == '__main__':
     # criterionVGG = VGG19Loss()
 
     # setup optimizer
+    optimizer_o = optim.Adam(net_o.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
     optimizer_g = optim.Adam(net_g.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
     optimizer_d = optim.Adam(net_d.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+    net_o_scheduler = get_scheduler(optimizer_o, opt)
     net_g_scheduler = get_scheduler(optimizer_g, opt)
     net_d_scheduler = get_scheduler(optimizer_d, opt)
 
@@ -271,6 +274,8 @@ if __name__ == '__main__':
         sum_g_loss = 0
         sum_tot_g_loss = 0
 
+        sum_opt_loss = 0
+
         sum_gfeat_loss = 0
 
         # sum_angular_loss = 0
@@ -280,6 +285,7 @@ if __name__ == '__main__':
         # sum_style_loss = 0
         sum_tv_loss = 0
 
+        net_o.train()
         net_g.train()
         net_d.train()
         for iteration, batch in bar:
@@ -288,11 +294,11 @@ if __name__ == '__main__':
             real_a, real_b = batch[0].to(device), batch[1].to(device)
 
             # Compression network
-            
 
+            opti_b = net_o(real_a)
 
             # Generate fake real image
-            fake_b = net_g(real_a)
+            fake_b = net_g(opti_b)
 
             # Updating Detection network (Discriminator)
             
@@ -384,6 +390,21 @@ if __name__ == '__main__':
             loss_d.backward()
             optimizer_d.step()
 
+            # After optimization check again to update optimizer
+            opti_b_next = net_o(real_a)
+
+            # Generate fake real image
+            fake_b_next = net_g(opti_b_next)
+
+            opt_loss = mse_criterion(fake_b_next, real_b)
+            content_loss_optimizer = criterionVGG(opti_b_next, real_b) * 10.0
+
+            opt_loss_n = opt_loss + content_loss_optimizer
+
+            optimizer_o.zero_grad()
+            opt_loss_n.backward()
+            optimizer_o.step()
+
             sum_d_loss += loss_d.item()
             sum_g_loss += loss_g_gan.item()
             sum_gfeat_loss += loss_G_GAN_Feat.item()
@@ -392,7 +413,7 @@ if __name__ == '__main__':
             sum_perp_loss += content_loss.item()
             # sum_style_loss += style_loss.item()
             sum_tv_loss += tv_loss.item()
-
+            sum_opt_loss = opt_loss_n.item()
             sum_tot_g_loss += loss_g.item()
 
             # In last iteration
@@ -400,13 +421,14 @@ if __name__ == '__main__':
                 # Pass for now
                 pass
             
-            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [GF: %.6f] [C: %.6f] [TV: %.6f] [Tot: %.6f]' %(
+            bar.set_description(desc='itr: %d/%d [%3d/%3d] [D: %.6f] [G: %.6f] [O: %.6f] [GF: %.6f] [C: %.6f] [TV: %.6f] [Tot: %.6f]' %(
                 iteration,
                 data_len,
                 epoch,
                 num_epoch - 1,
                 sum_d_loss/max(1, iteration),
                 sum_g_loss/max(1, iteration),
+                sum_opt_loss/max(1, iteration),
                 sum_gfeat_loss/max(1, iteration),
                 # sum_angular_loss/max(1, iteration),
                 # sum_sobel_loss/max(1, iteration),
@@ -421,6 +443,7 @@ if __name__ == '__main__':
 
         update_learning_rate(net_g_scheduler, optimizer_g)
         update_learning_rate(net_d_scheduler, optimizer_d)
+        update_learning_rate(net_o_scheduler, optimizer_o)
 
         # if epoch <= 20:
         #     sobelLambda = 100/20*epoch
@@ -429,25 +452,34 @@ if __name__ == '__main__':
 
         # test
         psnr_list = []
+        psnr_o_list = []
         ssim_list = []
+        max_psnr_o = 0
         max_psnr = 0
         max_ssim = 0
 
         has_good = False
 
+        net_o.eval()
         net_g.eval()
         net_d.eval()
+
+        i = 0
         for batch in testing_data_loader:
             input, target = batch[0].to(device), batch[1].to(device)
 
-            prediction = net_g(input)
+            optimization = net_o(input)
+            prediction = net_g(optimization)
 
-            # save_img(input.detach().squeeze(0).cpu(), "in.png")
-            # save_img(target.detach().squeeze(0).cpu(), "tar.png")
-            # save_img(prediction.detach().squeeze(0).cpu(), "pred.png")
+            if i == 0:
+                save_img(input.detach().squeeze(0).cpu(), "in.png")
+                save_img(target.detach().squeeze(0).cpu(), "tar.png")
+                save_img(prediction.detach().squeeze(0).cpu(), "pred.png")
+                save_img(optimization.detach().squeeze(0).cpu(), "opt.png")
 
             # mse = criterionMSE(prediction, target)
             # psnr = 10 * log10(1 / mse.item())
+            peesneen_o = psnr(target, optimization)
             peesneen = psnr(target, prediction)
             esesim = ssim(prediction, target)
 
@@ -461,11 +493,15 @@ if __name__ == '__main__':
 
                 has_good = True
 
+            max_psnr_o = max(max_psnr_o, peesneen_o)
             max_psnr = max(max_psnr, peesneen)
             max_ssim = max(max_ssim, esesim)
 
+            psnr_o_list.append(max_psnr_o)
             psnr_list.append(peesneen)
             ssim_list.append(esesim)
+
+            i = i + 1
 
         print("===> Avg. PSNR: {:.4f} dB".format(np.mean(psnr_list)))
         print("===> Avg. SSIM: {:.4f}".format(np.mean(ssim_list)))

@@ -154,12 +154,12 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
     init_weights(net, init_type, gain=init_gain)
     return net
 
-# def define_G(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
-#     net = None
+def define_C(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
+    net = None
 
-#     net = CompressNetwork()
+    net = CompressNetwork()
 
-#     return init_net(net, init_type, init_gain, gpu_id)
+    return init_net(net, init_type, init_gain, gpu_id)
 
 def define_G(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
     net = None
@@ -384,8 +384,8 @@ class ExpandNetwork(nn.Module):
         super(ExpandNetwork, self).__init__()
         
         # nonlineraity
-        self.relu = nn.PReLU()
-        # self.leakyRelu = nn.LeakyReLU(0.2)
+        # self.relu = nn.PReLU()
+        self.leakyRelu = nn.LeakyReLU(0.2)
         self.tanh = nn.Tanh()
 
         # encoding layers
@@ -423,9 +423,9 @@ class ExpandNetwork(nn.Module):
 
     def forward(self, x):
         # encode
-        y = self.relu(self.in1_e(self.conv1(x)))
-        y = self.relu(self.in2_e(self.conv2(y)))
-        y = self.relu(self.in3_e(self.conv3(y)))
+        y = self.leakyRelu(self.in1_e(self.conv1(x)))
+        y = self.leakyRelu(self.in2_e(self.conv2(y)))
+        y = self.leakyRelu(self.in3_e(self.conv3(y)))
 
         # residual layers
         # residual = y
@@ -443,8 +443,8 @@ class ExpandNetwork(nn.Module):
         # y = self.leakyRelu(r)
 
         # decode
-        y = self.relu(self.in3_d(self.deconv3(y)))
-        y = self.relu(self.in2_d(self.deconv2(y)))
+        y = self.leakyRelu(self.in3_d(self.deconv3(y)))
+        y = self.leakyRelu(self.in2_d(self.deconv2(y)))
         y = self.tanh(self.in1_d(self.deconv1(y)))
         # y = self.deconv1(y)
 
