@@ -377,7 +377,7 @@ class TransformNetwork(nn.Module):
         self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
         self.in3_e = nn.BatchNorm2d(128, affine=True)
 
-        self.conv4 = nn.Conv2d(128, 128, kernel_size=3, stride=2)
+        self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=2)
 
         # residual layers
         self.res1 = ResidualBlock(128)
@@ -390,7 +390,7 @@ class TransformNetwork(nn.Module):
         self.res8 = ResidualBlock(128)
         self.res9 = ResidualBlock(128)
 
-        self.deconv_4 = nn.Conv2d(128, 128, kernel_size=3, stride=1)
+        self.deconv_4 = ConvLayer(128, 128, kernel_size=3, stride=1)
         self.in4_d = nn.BatchNorm2d(128, affine=True)
 
         # decoding layers
@@ -424,7 +424,6 @@ class TransformNetwork(nn.Module):
         r = self.res9(r)
 
         r = self.in4_d(self.deconv_4(r))
-        print(r.shape, residual.shape)
         r = r + residual
         y = self.leakyRelu(r)
 
