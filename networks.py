@@ -224,7 +224,7 @@ class CompressionNetwork(nn.Module):
 
         res = self.pooling(res)
         res = self.shuffle(res)
-
+        print(res.size())
         res = F.normalize(res, p=2, dim=1)
         res = F.interpolate(res, scale_factor=2)
 
