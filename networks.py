@@ -214,7 +214,7 @@ class CompressionNetwork(nn.Module):
         )
 
         self.conv_block2 = nn.Sequential(
-            ConvLayer(64, 12, kernel_size=3, stride=1),
+            ConvLayer(64, 12, kernel_size=3, stride=2),
             nn.PixelShuffle(2)
         )
 
