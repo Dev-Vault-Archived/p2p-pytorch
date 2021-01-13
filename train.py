@@ -505,12 +505,13 @@ if __name__ == '__main__':
             state = {
                 'epoch': epoch + 1,
                 'state_dict_g': net_g.state_dict(),
-                'state_dict_d': net_d.state_dict(),
-                'optimizer_g': optimizer_g.state_dict(),
-                'optimizer_d': optimizer_d.state_dict(),
-                'scheduler_g': net_g_scheduler.state_dict(),
-                'scheduler_d': net_d_scheduler.state_dict(),
-                'losslogger': losslogger,
+                'state_dict_c': net_c.state_dict(),
+                # 'state_dict_d': net_d.state_dict(),
+                # 'optimizer_g': optimizer_g.state_dict(),
+                # 'optimizer_d': optimizer_d.state_dict(),
+                # 'scheduler_g': net_g_scheduler.state_dict(),
+                # 'scheduler_d': net_d_scheduler.state_dict(),
+                # 'losslogger': losslogger,
             }
 
             torch.save(state, net_g_model_out_path)
