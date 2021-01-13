@@ -424,6 +424,7 @@ class TransformNetwork(nn.Module):
         r = self.res9(r)
 
         r = self.in4_d(self.deconv_4(r))
+        print(r.shape, residual.shape)
         r = r + residual
         y = self.leakyRelu(r)
 
