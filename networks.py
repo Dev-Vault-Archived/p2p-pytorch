@@ -485,7 +485,7 @@ class ExpandNetwork(nn.Module):
         self.in4_e = nn.BatchNorm2d(128, affine=True)
 
         self.pixel = PixelUnshuffle(2)
-        self.conv4 = ConvLayer(512, 512, kernel_size=3, stride=1)
+        self.conv5 = ConvLayer(512, 512, kernel_size=3, stride=1)
 
         # self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
         
@@ -520,7 +520,7 @@ class ExpandNetwork(nn.Module):
         y = self.relu(self.in4_e(self.conv4(y)))
 
         y = self.pixel(y)
-        y = self.leakyRelu(self.conv4(y))
+        y = self.leakyRelu(self.conv5(y))
 
         # residual layers
         residual = y
@@ -535,7 +535,7 @@ class ExpandNetwork(nn.Module):
         res = self.res9(res)
 
         res = res + residual
-        y = self.leakyRelu(res)
+        y = self.leakyRelu(self.deconv4(res))
 
         # decode
         y = self.relu(self.in3_d(self.deconv3(y)))
