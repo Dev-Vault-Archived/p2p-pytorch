@@ -295,7 +295,7 @@ if __name__ == '__main__':
 
             # Compression network
 
-            opti_b = net_o(real_a.detach())
+            opti_b = net_o(real_a)
 
             # Generate fake real image
             fake_b = net_g(opti_b.detach())
