@@ -377,20 +377,20 @@ class TransformNetwork(nn.Module):
         self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
         self.in3_e = nn.BatchNorm2d(128, affine=True)
 
-        self.conv4 = ConvLayer(128, 256, kernel_size=3, stride=2)
+        self.conv4 = ConvLayer(128, 256, kernel_size=3, stride=1)
 
         # residual layers
-        self.res1 = ResidualBlock(256)
-        self.res2 = ResidualBlock(256)
-        self.res3 = ResidualBlock(256)
-        self.res4 = ResidualBlock(256)
-        self.res5 = ResidualBlock(256)
-        self.res6 = ResidualBlock(256)
-        self.res7 = ResidualBlock(256)
-        self.res8 = ResidualBlock(256)
-        self.res9 = ResidualBlock(256)
+        self.res1 = ResidualBlock(128)
+        self.res2 = ResidualBlock(128)
+        self.res3 = ResidualBlock(128)
+        self.res4 = ResidualBlock(128)
+        self.res5 = ResidualBlock(128)
+        self.res6 = ResidualBlock(128)
+        self.res7 = ResidualBlock(128)
+        self.res8 = ResidualBlock(128)
+        self.res9 = ResidualBlock(128)
 
-        self.deconv_4 = ConvLayer(256, 128, kernel_size=3, stride=1)
+        self.deconv_4 = ConvLayer(128, 128, kernel_size=3, stride=1)
         self.in4_d = nn.BatchNorm2d(128, affine=True)
 
         # decoding layers
