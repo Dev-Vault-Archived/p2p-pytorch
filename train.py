@@ -286,6 +286,11 @@ if __name__ == '__main__':
 
             # forward
             real_a, real_b = batch[0].to(device), batch[1].to(device)
+
+            # Compression network
+            
+
+
             # Generate fake real image
             fake_b = net_g(real_a)
 

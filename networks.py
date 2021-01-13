@@ -14,6 +14,38 @@ import torchvision.transforms as transforms
 
 import random
 
+class ChannelNorm2D(nn.Module):
+    """ 
+    Similar to default Torch instanceNorm2D but calculates
+    moments over channel dimension instead of spatial dims.
+    Expects input_dim in format (B,C,H,W)
+    """
+
+    def __init__(self, input_channels, momentum=0.1, eps=1e-3,
+                 affine=True, **kwargs):
+        super(ChannelNorm2D, self).__init__()
+
+        self.momentum = momentum
+        self.eps = eps
+        self.affine = affine
+
+        if affine is True:
+            self.gamma = nn.Parameter(torch.ones(1, input_channels, 1, 1))
+            self.beta = nn.Parameter(torch.zeros(1, input_channels, 1, 1))
+
+    def forward(self, x):
+        """
+        Calculate moments over channel dim, normalize.
+        x:  Image tensor, shape (B,C,H,W)
+        """
+        mu, var = torch.mean(x, dim=1, keepdim=True), torch.var(x, dim=1, keepdim=True)
+
+        x_normed = (x - mu) * torch.rsqrt(var + self.eps)
+
+        if self.affine is True:
+            x_normed = self.gamma * x_normed + self.beta
+        return x_normed
+
 class VGGLoss(nn.Module):
     def __init__(self, device):
         super(VGGLoss, self).__init__()        
@@ -153,157 +185,177 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
     init_weights(net, init_type, gain=init_gain)
     return net
 
+# def define_G(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
+#     net = None
+
+#     net = CompressNetwork()
+
+#     return init_net(net, init_type, init_gain, gpu_id)
 
 def define_G(init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
     net = None
 
     # norm_layer = get_norm_layer(norm_type='batch')
     # net = ResnetGenerator(3, 3, 64, norm_layer=norm_layer, use_dropout=True, n_blocks=9)
-    net = TransformNetwork()
+    net = ExpandNetwork()
 
     return init_net(net, init_type, init_gain, gpu_id)
 
-# Defines the generator that consists of Resnet blocks between a few
-# downsampling/upsampling operations.
-# class ResnetGenerator(nn.Module):
-#     def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=9, padding_type='reflect'):
-#         assert(n_blocks >= 0)
-#         super(ResnetGenerator, self).__init__()
-#         self.input_nc = input_nc
-#         self.output_nc = output_nc
-#         self.ngf = ngf
-#         if type(norm_layer) == functools.partial:
-#             use_bias = norm_layer.func == nn.InstanceNorm2d
-#         else:
-#             use_bias = norm_layer == nn.InstanceNorm2d
+# class CompressionEncoder(nn.Module):
+#     def __init__(self):
+#         super(CompressionEncoder, self).__init__()
 
-#         self.inc = Inconv(input_nc, ngf, norm_layer, use_bias)
-#         self.down1 = Down(ngf, ngf * 2, norm_layer, use_bias)
-#         self.down2 = Down(ngf * 2, ngf * 4, norm_layer, use_bias)
-
-#         model = []
-#         for i in range(n_blocks):
-#             model += [ResBlock(ngf * 4, padding_type=padding_type, norm_layer=norm_layer, use_dropout=use_dropout, use_bias=use_bias)]
-#         self.resblocks = nn.Sequential(*model)
-
-#         self.up1 = Up(ngf * 4, ngf * 2, norm_layer, use_bias)
-#         self.up2 = Up(ngf * 2, ngf, norm_layer, use_bias)
-
-#         self.outc = Outconv(ngf, output_nc)
-
-#     def forward(self, input):
-#         out = {}
-#         out['in'] = self.inc(input)
-#         out['d1'] = self.down1(out['in'])
-#         out['d2'] = self.down2(out['d1'])
-#         out['bottle'] = self.resblocks(out['d2'])
-#         out['u1'] = self.up1(out['bottle'])
-#         out['u2'] = self.up2(out['u1'])
-
-#         return self.outc(out['u2'])
-
-# class Inconv(nn.Module):
-#     def __init__(self, in_ch, out_ch, norm_layer, use_bias):
-#         super(Inconv, self).__init__()
-#         self.inconv = nn.Sequential(
+#         self.conv_block1 = nn.Sequential(
 #             nn.ReflectionPad2d(3),
-#             nn.Conv2d(in_ch, out_ch, kernel_size=7, padding=0,
-#                       bias=use_bias),
-#             norm_layer(out_ch),
-#             nn.ReLU(True)
+#             nn.Conv2d(3, 60, kernel_size=(7, 7), stride=1),
+#             nn.InstanceNorm2d(60, eps=1e-3, momentum=0.1, affine=True, track_running_stats=False),
+#             nn.ReLU()
+#         )
+
+#         self.conv_block2 = nn.Sequential(
+#             nn.ReflectionPad2d((0,1,1,0)),
+#             nn.Conv2d(60, 120, 3, stride=2, padding=0, padding_mode='reflect'),
+#             nn.InstanceNorm2d(120, eps=1e-3, momentum=0.1, affine=True, track_running_stats=False),
+#             nn.ReLU()
+#         )
+
+#         self.conv_block3 = nn.Sequential(
+#             nn.ReflectionPad2d((0,1,1,0)),
+#             nn.Conv2d(120, 240, 3, stride=2, padding=0, padding_mode='reflect'),
+#             nn.InstanceNorm2d(240, eps=1e-3, momentum=0.1, affine=True, track_running_stats=False),
+#             nn.ReLU()
+#         )
+
+#         self.conv_block4 = nn.Sequential(
+#             nn.ReflectionPad2d((0,1,1,0)),
+#             nn.Conv2d(240, 480, 3, stride=2, padding=0, padding_mode='reflect'),
+#             nn.InstanceNorm2d(480, eps=1e-3, momentum=0.1, affine=True, track_running_stats=False),
+#             nn.ReLU()
+#         )
+
+#         self.conv_block5 = nn.Sequential(
+#             nn.ReflectionPad2d((0,1,1,0)),
+#             nn.Conv2d(480, 960, 3, stride=2, padding=0, padding_mode='reflect'),
+#             nn.InstanceNorm2d(960, eps=1e-3, momentum=0.1, affine=True),
+#             nn.ReLU()
+#         )
+
+#         self.conv_block_out = nn.Sequential(
+#             nn.ReflectionPad2d(1),
+#             nn.Conv2d(960, 220, 3, stride=1)
 #         )
 
 #     def forward(self, x):
-#         x = self.inconv(x)
-#         return x
+#         x = self.conv_block1(x)
+#         x = self.conv_block2(x)
+#         x = self.conv_block3(x)
+#         x = self.conv_block4(x)
+#         x = self.conv_block5(x)
+#         out = self.conv_block_out(x)
+#         return out
 
+# class CompressionResidualBlock(nn.Module):
+#     def __init__(self, in_channels):
+#         super(CompressionResidualBlock, self).__init__()
 
-# class Down(nn.Module):
-#     def __init__(self, in_ch, out_ch, norm_layer, use_bias):
-#         super(Down, self).__init__()
-#         self.down = nn.Sequential(
-#             nn.Conv2d(in_ch, out_ch, kernel_size=3,
-#                       stride=2, padding=1, bias=use_bias),
-#             norm_layer(out_ch),
-#             nn.ReLU(True)
+#         self.activation = nn.ReLU()
+
+#         self.interlayer_norm = nn.InstanceNorm2d()
+
+#         pad_size = int((3-1)/2)
+#         self.pad = nn.ReflectionPad2d(pad_size)
+#         self.conv1 = nn.Conv2d(in_channels, in_channels, 3, stride=1)
+#         self.conv2 = nn.Conv2d(in_channels, in_channels, 3, stride=1)
+#         self.norm1 = self.interlayer_norm(in_channels, momentum=0.1, affine=True, track_running_stats=False)
+#         self.norm2 = self.interlayer_norm(in_channels, momentum=0.1, affine=True, track_running_stats=False)
+
+#     def forward(self, x):
+#         identity_map = x
+#         res = self.pad(x)
+#         res = self.conv1(res)
+#         res = self.norm1(res) 
+#         res = self.activation(res)
+
+#         res = self.pad(res)
+#         res = self.conv2(res)
+#         res = self.norm2(res)
+
+#         return torch.add(res, identity_map)
+
+# class CompressionGenerator(nn.Module):
+#     def __init__(self):
+#         super(CompressionGenerator, self).__init__()
+
+#         self.conv_block_init = nn.Sequential(
+#             nn.InstanceNorm2d(220, eps=1e-3, momentum=0.1, affine=True),
+#             nn.ReflectionPad2d(1),
+#             nn.Conv2d(220, 960, kernel_size=(3, 3), stride=1),
+#             nn.InstanceNorm2d(960, eps=1e-3, momentum=0.1, affine=True)
 #         )
 
-#     def forward(self, x):
-#         x = self.down(x)
-#         return x
+#         for m in range(8):
+#             resblock_m = CompressionResidualBlock(960)
+#             self.add_module(f'resblock_{str(m)}', resblock_m)
 
-# # Define a Resnet block
-# class ResBlock(nn.Module):
-#     def __init__(self, dim, padding_type, norm_layer, use_dropout, use_bias):
-#         super(ResBlock, self).__init__()
-#         self.conv_block = self.build_conv_block(dim, padding_type, norm_layer, use_dropout, use_bias)
-
-#     def build_conv_block(self, dim, padding_type, norm_layer, use_dropout, use_bias):
-#         conv_block = []
-#         p = 0
-#         if padding_type == 'reflect':
-#             conv_block += [nn.ReflectionPad2d(1)]
-#         elif padding_type == 'replicate':
-#             conv_block += [nn.ReplicationPad2d(1)]
-#         elif padding_type == 'zero':
-#             p = 1
-#         else:
-#             raise NotImplementedError('padding [%s] is not implemented' % padding_type)
-
-#         conv_block += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
-#                        norm_layer(dim),
-#                        nn.ReLU(True)]
-#         if use_dropout:
-#             conv_block += [nn.Dropout(0.5)]
-
-#         p = 0
-#         if padding_type == 'reflect':
-#             conv_block += [nn.ReflectionPad2d(1)]
-#         elif padding_type == 'replicate':
-#             conv_block += [nn.ReplicationPad2d(1)]
-#         elif padding_type == 'zero':
-#             p = 1
-#         else:
-#             raise NotImplementedError('padding [%s] is not implemented' % padding_type)
-#         conv_block += [nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
-#                        norm_layer(dim)]
-
-#         return nn.Sequential(*conv_block)
-
-#     def forward(self, x):
-#         out = x + self.conv_block(x)
-#         return nn.ReLU(True)(out)
-
-
-# class Up(nn.Module):
-#     def __init__(self, in_ch, out_ch, norm_layer, use_bias):
-#         super(Up, self).__init__()
-#         self.up = nn.Sequential(
-#             nn.ConvTranspose2d(in_ch, out_ch,
-#                                kernel_size=3, stride=2,
-#                                padding=1, output_padding=1,
-#                                bias=use_bias),
-#             norm_layer(out_ch),
-#             nn.ReLU(True)
+#         self.upconv_block1 = nn.Sequential(
+#             nn.ConvTranspose2d(960, 480, 3, stride=2, padding=1, output_padding=1),
+#             nn.InstanceNorm2d(480, eps=1e-3, momentum=0.1, affine=True),
+#             nn.ReLU()
 #         )
 
-#     def forward(self, x):
-#         x = self.up(x)
-#         return x
+#         self.upconv_block2 = nn.Sequential(
+#             nn.ConvTranspose2d(480, 240, 3, stride=2, padding=1, output_padding=1),
+#             nn.InstanceNorm2d(240, eps=1e-3, momentum=0.1, affine=True),
+#             nn.ReLU()
+#         )
 
+#         self.upconv_block3 = nn.Sequential(
+#             nn.ConvTranspose2d(240, 120, 3, stride=2, padding=1, output_padding=1),
+#             nn.InstanceNorm2d(120, eps=1e-3, momentum=0.1, affine=True),
+#             nn.ReLU()
+#         )
 
-# class Outconv(nn.Module):
-#     def __init__(self, in_ch, out_ch):
-#         super(Outconv, self).__init__()
-#         self.outconv = nn.Sequential(
+#         self.upconv_block4 = nn.Sequential(
+#             nn.ConvTranspose2d(120, 60, 3, stride=2, padding=1, output_padding=1),
+#             nn.InstanceNorm2d(60, eps=1e-3, momentum=0.1, affine=True),
+#             nn.ReLU()
+#         )
+
+#         self.conv_block_out = nn.Sequential(
 #             nn.ReflectionPad2d(3),
-#             nn.Conv2d(in_ch, out_ch, kernel_size=7, padding=0),
-#             nn.Tanh()
+#             nn.Conv2d(60, 3, kernel_size=(7, 7), stride=1)
 #         )
 
 #     def forward(self, x):
-#         x = self.outconv(x)
-#         return x
+        
+#         head = self.conv_block_init(x)
+
+#         for m in range(self.n_residual_blocks):
+#             resblock_m = getattr(self, f'resblock_{str(m)}')
+#             if m == 0:
+#                 x = resblock_m(head)
+#             else:
+#                 x = resblock_m(x)
+        
+#         x += head
+#         x = self.upconv_block1(x)
+#         x = self.upconv_block2(x)
+#         x = self.upconv_block3(x)
+#         x = self.upconv_block4(x)
+#         out = self.conv_block_out(x)
+
+#         return out
+
+# class CompressNetwork(nn.Module):
+#     def __init__(self):
+#         self.entropy_code = True
+
+#         self.Encoder = CompressionEncoder()
+#         self.Generator = CompressionGenerator()
+
+
+#     def forward():
+#         pass
 
 # Conv Layer
 class ConvLayer(nn.Module):
@@ -344,10 +396,10 @@ class ResidualBlock(nn.Module):
     def __init__(self, channels):
         super(ResidualBlock, self).__init__()
         self.conv1 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in1 = nn.BatchNorm2d(channels, affine=True)
+        self.in1 = ChannelNorm2D(channels, affine=True)
         self.relu = nn.ReLU()
         self.conv2 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in2 = nn.BatchNorm2d(channels, affine=True)
+        self.in2 = ChannelNorm2D(channels, affine=True)
 
     def forward(self, x):
         residual = x
@@ -358,9 +410,9 @@ class ResidualBlock(nn.Module):
         return out 
 
 # Image Transform Network
-class TransformNetwork(nn.Module):
+class ExpandNetwork(nn.Module):
     def __init__(self):
-        super(TransformNetwork, self).__init__()
+        super(ExpandNetwork, self).__init__()
         
         # nonlineraity
         self.relu = nn.ReLU()
@@ -369,13 +421,13 @@ class TransformNetwork(nn.Module):
 
         # encoding layers
         self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
-        self.in1_e = nn.BatchNorm2d(32, affine=True)
+        self.in1_e = ChannelNorm2D(32, affine=True)
 
         self.conv2 = ConvLayer(32, 64, kernel_size=3, stride=2)
-        self.in2_e = nn.BatchNorm2d(64, affine=True)
+        self.in2_e = ChannelNorm2D(64, affine=True)
 
         self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
-        self.in3_e = nn.BatchNorm2d(128, affine=True)
+        self.in3_e = ChannelNorm2D(128, affine=True)
 
         self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
 
@@ -391,17 +443,17 @@ class TransformNetwork(nn.Module):
         self.res9 = ResidualBlock(128)
 
         self.deconv_4 = ConvLayer(128, 128, kernel_size=3, stride=1)
-        self.in4_d = nn.BatchNorm2d(128, affine=True)
+        self.in4_d = ChannelNorm2D(128, affine=True)
 
         # decoding layers
         self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
-        self.in3_d = nn.BatchNorm2d(64, affine=True)
+        self.in3_d = ChannelNorm2D(64, affine=True)
 
         self.deconv2 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2 )
-        self.in2_d = nn.BatchNorm2d(32, affine=True)
+        self.in2_d = ChannelNorm2D(32, affine=True)
 
         self.deconv1 = UpsampleConvLayer(32, 3, kernel_size=9, stride=1)
-        self.in1_d = nn.BatchNorm2d(3, affine=True)
+        self.in1_d = ChannelNorm2D(3, affine=True)
 
     def forward(self, x):
         # encode
@@ -435,9 +487,9 @@ class TransformNetwork(nn.Module):
 
         return y
 
-# class TransformNetwork(nn.Module):    
+# class ExpandNetwork(nn.Module):    
 #     def __init__(self):        
-#         super(TransformNetwork, self).__init__()        
+#         super(ExpandNetwork, self).__init__()        
         
 #         self.layers = nn.Sequential(            
 #             ConvLayer(3, 32, 9, 1),
