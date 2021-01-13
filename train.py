@@ -388,9 +388,9 @@ if __name__ == '__main__':
             loss_d.backward()
             optimizer_d.step()
 
-            fake_b_aftercompress = net_g(compressed)
+            fake_b_aftercompress = net_g(compressed.detach())
             # Optimize parameter compressor
-            loss_c = mse_criterion(fake_b_aftercompress.detach(), real_b)
+            loss_c = mse_criterion(fake_b_aftercompress, real_b)
             c_percp = criterionVGG(compressed, real_b) * 10.0
 
             locc = loss_c + c_percp
