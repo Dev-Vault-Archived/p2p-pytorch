@@ -295,7 +295,7 @@ if __name__ == '__main__':
 
             # sobel layer
             # fake_sobel = sobelLayer(fake_b, gpu_id=device)
-
+            print(real_a.shape, fake_b.shape)
             fake_ab_pool = image_pool.query(torch.cat((real_a, fake_b.detach()), 1))
             pred_fake = net_d.forward(fake_ab_pool)
             loss_d_fake = criterionGAN(pred_fake, False)
