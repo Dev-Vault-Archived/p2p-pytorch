@@ -209,7 +209,7 @@ class CompressionNetwork(nn.Module):
         #     nn.LeakyReLU(0.2)
         # )
 
-        self.pooling = nn.AvgPool2d(7, stride=2)
+        self.pooling = nn.AvgPool2d(2, stride=2)
         self.shuffle = nn.PixelShuffle(2)
         pass
 
