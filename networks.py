@@ -175,52 +175,34 @@ class CompressionNetwork(nn.Module):
         super(CompressionNetwork, self).__init__()
 
         self.conv_input = nn.Sequential(
-            ConvLayer(3, 64, kernel_size=2, stride=1),
+            ConvLayer(3, 64, kernel_size=9, stride=1),
             nn.LeakyReLU(0.2)
         )
 
         self.conv_block1 = nn.Sequential(
-            ConvLayer(64, 64, kernel_size=3, stride=1),
+            ConvLayer(64, 128, kernel_size=3, stride=2),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2)
         )
 
-        self.conv_block2 = nn.Sequential(
-            ConvLayer(64, 64, kernel_size=3, stride=1),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2)
-        )
-
-        self.conv_block3 = nn.Sequential(
-            ConvLayer(64, 12, kernel_size=3, stride=2),
-            nn.BatchNorm2d(12),
-            nn.LeakyReLU(0.2)
-        )
-
-        self.pooling = nn.AvgPool2d(2, stride=2)
-        self.shuffle = nn.PixelShuffle(2)
+        self.pooling = nn.AvgPool2d(3, stride=2)
+        # self.shuffle = nn.PixelShuffle(2)
+        # pass
 
     def forward(self, x):
         identity = x
         res = self.conv_input(x)
         res = self.conv_block1(res)
-        res = self.conv_block2(res)
-        res = self.conv_block3(res)
+        # res = self.conv_block2(res)
+        # res = self.conv_block3(res)
         # res = self.conv_block4(res)
         # res = self.conv_block5(res)
-        print(res.size())
 
         res = self.pooling(res)
-        print(res.size())
+        # res = self.shuffle(res)
 
-        res = self.shuffle(res)
-        print(res.size())
-        
         res = F.normalize(res, p=2, dim=1)
-        print(res.size())
-
         res = F.interpolate(res, scale_factor=2)
-        print(res.size())
 
         return identity + res
 
@@ -432,35 +414,6 @@ class ResidualBlock(nn.Module):
         out = self.relu(out)
         return out 
 
-def pixel_unshuffle(input, downscale_factor):
-    '''
-    input: batchSize * c * k*w * k*h
-    kdownscale_factor: k
-    batchSize * c * k*w * k*h -> batchSize * k*k*c * w * h
-    '''
-    c = input.shape[1]
-
-    kernel = torch.zeros(size=[downscale_factor * downscale_factor * c,
-                               1, downscale_factor, downscale_factor],
-                         device=input.device)
-    for y in range(downscale_factor):
-        for x in range(downscale_factor):
-            kernel[x + y * downscale_factor::downscale_factor*downscale_factor, 0, y, x] = 1
-    return F.conv2d(input, kernel, stride=downscale_factor, groups=c)
-
-class PixelUnshuffle(nn.Module):
-    def __init__(self, downscale_factor):
-        super(PixelUnshuffle, self).__init__()
-        self.downscale_factor = downscale_factor
-    def forward(self, input):
-        '''
-        input: batchSize * c * k*w * k*h
-        kdownscale_factor: k
-        batchSize * c * k*w * k*h -> batchSize * k*k*c * w * h
-        '''
-
-        return pixel_unshuffle(input, self.downscale_factor)
-
 # Image Transform Network
 class ExpandNetwork(nn.Module):
     def __init__(self):
@@ -481,26 +434,18 @@ class ExpandNetwork(nn.Module):
         self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
         self.in3_e = nn.BatchNorm2d(128, affine=True)
 
-        self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=2)
-        self.in4_e = nn.BatchNorm2d(128, affine=True)
-
-        self.pixel = PixelUnshuffle(2)
-        self.conv5 = ConvLayer(512, 512, kernel_size=3, stride=1)
-
         # self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
         
         # residual layers
-        self.res1 = ResidualBlock(512)
-        self.res2 = ResidualBlock(512)
-        self.res3 = ResidualBlock(512)
-        self.res4 = ResidualBlock(512)
-        self.res5 = ResidualBlock(512)
-        self.res6 = ResidualBlock(512)
-        self.res7 = ResidualBlock(512)
-        self.res8 = ResidualBlock(512)
-        self.res9 = ResidualBlock(512)
-        
-        self.deconv4 = ConvLayer(512, 128, kernel_size=3, stride=1)
+        self.res1 = ResidualBlock(128)
+        self.res2 = ResidualBlock(128)
+        self.res3 = ResidualBlock(128)
+        self.res4 = ResidualBlock(128)
+        self.res5 = ResidualBlock(128)
+        self.res6 = ResidualBlock(128)
+        self.res7 = ResidualBlock(128)
+        self.res8 = ResidualBlock(128)
+        self.res9 = ResidualBlock(128)
 
         # decoding layers
         self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
@@ -517,10 +462,6 @@ class ExpandNetwork(nn.Module):
         y = self.relu(self.in1_e(self.conv1(x)))
         y = self.relu(self.in2_e(self.conv2(y)))
         y = self.relu(self.in3_e(self.conv3(y)))
-        y = self.relu(self.in4_e(self.conv4(y)))
-
-        y = self.pixel(y)
-        y = self.leakyRelu(self.conv5(y))
 
         # residual layers
         residual = y
@@ -535,7 +476,7 @@ class ExpandNetwork(nn.Module):
         res = self.res9(res)
 
         res = res + residual
-        y = self.leakyRelu(self.deconv4(res))
+        y = self.leakyRelu(res)
 
         # decode
         y = self.relu(self.in3_d(self.deconv3(y)))
