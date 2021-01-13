@@ -203,7 +203,7 @@ class CompressionNetwork(nn.Module):
         super(CompressionNetwork, self).__init__()
 
         self.conv_input = nn.Sequential(
-            ConvLayer(3, 64, kernel_size=3, stride=1),
+            ConvLayer(3, 64, kernel_size=5, stride=1),
             nn.PReLU()
         )
 
@@ -214,7 +214,7 @@ class CompressionNetwork(nn.Module):
         )
 
         self.conv_block2 = nn.Sequential(
-            ConvLayer(64, 12, kernel_size=2, stride=2),
+            ConvLayer(64, 12, kernel_size=3, stride=1),
             nn.PixelShuffle(2)
         )
 
@@ -230,7 +230,6 @@ class CompressionNetwork(nn.Module):
 
         # res = self.pooling(res)
         # res = self.shuffle(res)
-        print(res.size())
         res = F.normalize(res, p=2, dim=1)
         # res = F.interpolate(res, scale_factor=2)
 
