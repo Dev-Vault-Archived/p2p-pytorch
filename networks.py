@@ -492,7 +492,9 @@ class ExpandNetwork(nn.Module):
     def forward(self, x):
         # encode
         y = self.inversePixel(x)
+        print(y.size())
         y = self.upsclaing(y)
+        print(y.size())
         y = self.relu(self.in1_e(self.conv1(y)))
         y = self.relu(self.in2_e(self.conv2(y)))
         y = self.relu(self.in3_e(self.conv3(y)))
