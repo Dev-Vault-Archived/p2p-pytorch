@@ -457,7 +457,7 @@ class ExpandNetwork(nn.Module):
         self.upsclaing = nn.Upsample(scale_factor=2, mode='nearest')
 
         # encoding layers
-        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
+        self.conv1 = ConvLayer(12, 32, kernel_size=9, stride=1)
         self.in1_e = nn.BatchNorm2d(32, affine=True)
 
         self.conv2 = ConvLayer(32, 64, kernel_size=3, stride=2)
