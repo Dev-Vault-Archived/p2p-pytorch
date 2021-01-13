@@ -397,9 +397,10 @@ if __name__ == '__main__':
             fake_b_next = net_g(opti_b_next)
 
             opt_loss = mse_criterion(fake_b_next, real_b)
+            opt_loss_optimizer = mse_criterion(opti_b_next, real_a)
             content_loss_optimizer = criterionVGG(opti_b_next, real_b) * 10.0
 
-            opt_loss_n = opt_loss + content_loss_optimizer
+            opt_loss_n = opt_loss + content_loss_optimizer + opt_loss_optimizer
 
             optimizer_o.zero_grad()
             opt_loss_n.backward()
