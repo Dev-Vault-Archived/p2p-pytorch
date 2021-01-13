@@ -220,8 +220,9 @@ class CompressionNetwork(nn.Module):
         res = self.conv_block2(res)
         res = self.conv_block3(res)
         res = self.conv_block4(res)
-        res = self.conv_block5(res)
         print(res.size())
+
+        res = self.conv_block5(res)
         res = self.pooling(res)
         print(res.size())
         res = self.shuffle(res)
