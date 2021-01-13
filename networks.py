@@ -620,7 +620,7 @@ def define_D(input_nc, ndf, norm='batch', use_sigmoid=False, init_type='normal',
     return init_net(net, init_type, init_gain, gpu_id)
 
 class MultiscaleDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, 
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=None, 
                  use_sigmoid=False, num_D=3, getIntermFeat=False):
         super(MultiscaleDiscriminator, self).__init__()
         self.num_D = num_D
@@ -662,10 +662,12 @@ class MultiscaleDiscriminator(nn.Module):
 
 # Defines the PatchGAN discriminator with the specified arguments.
 class NLayerDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_sigmoid=False, getIntermFeat=False):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=None, use_sigmoid=False, getIntermFeat=False):
         super(NLayerDiscriminator, self).__init__()
         self.getIntermFeat = getIntermFeat
         self.n_layers = n_layers
+
+        norm_layer = nn.utils.spectral_norm
 
         kw = 4
         padw = int(np.ceil((kw-1.0)/2))
@@ -677,14 +679,14 @@ class NLayerDiscriminator(nn.Module):
             nf = min(nf * 2, 512)
             sequence += [[
                 nn.Conv2d(nf_prev, nf, kernel_size=kw, stride=2, padding=padw),
-                norm_layer(nf), nn.LeakyReLU(0.2, True)
+                norm_layer, nn.LeakyReLU(0.2, True)
             ]]
 
         nf_prev = nf
         nf = min(nf * 2, 512)
         sequence += [[
             nn.Conv2d(nf_prev, nf, kernel_size=kw, stride=1, padding=padw),
-            norm_layer(nf),
+            norm_layer,
             nn.LeakyReLU(0.2, True)
         ]]
 
