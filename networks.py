@@ -221,10 +221,12 @@ class CompressionNetwork(nn.Module):
         res = self.conv_block3(res)
         res = self.conv_block4(res)
         res = self.conv_block5(res)
-
+        print(res.size())
         res = self.pooling(res)
+        print(res.size())
         res = self.shuffle(res)
         print(res.size())
+        
         res = F.normalize(res, p=2, dim=1)
         res = F.interpolate(res, scale_factor=2)
 
