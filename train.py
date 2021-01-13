@@ -296,7 +296,7 @@ if __name__ == '__main__':
             compressed = compress(net_c(real_b), 3)
 
             # Generate fake real image
-            fake_b = net_g(compressed)
+            fake_b = net_g(compressed.detach())
 
             # Updating Detection network (Discriminator)
             
@@ -390,8 +390,8 @@ if __name__ == '__main__':
 
             fake_b_aftercompress = net_g(compressed)
             # Optimize parameter compressor
-            loss_c = mse_criterion(fake_b_aftercompress, real_b.detach())
-            c_percp = criterionVGG(compressed.detach(), real_b.detach()) * 10.0
+            loss_c = mse_criterion(fake_b_aftercompress, real_b)
+            c_percp = criterionVGG(compressed, real_b) * 10.0
 
             locc = loss_c + c_percp
 
