@@ -11,6 +11,7 @@ from torch.optim import lr_scheduler
 
 import torchvision.models as models
 import torchvision.transforms as transforms
+from torch.nn import Parameter
 
 import random
 
@@ -121,16 +122,16 @@ class ImagePool():
         return_images = Variable(torch.cat(return_images, 0))
         return return_images
 
-def get_norm_layer(norm_type='instance'):
-    if norm_type == 'batch':
-        norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
-    elif norm_type == 'instance':
-        norm_layer = functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=False)
-    elif norm_type == 'none':
-        norm_layer = None
-    else:
-        raise NotImplementedError('normalization layer [%s] is not found' % norm_type)
-    return norm_layer
+# def get_norm_layer(norm_type='instance'):
+#     if norm_type == 'batch':
+#         norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
+#     elif norm_type == 'instance':
+#         norm_layer = functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=False)
+#     elif norm_type == 'none':
+#         norm_layer = None
+#     else:
+#         raise NotImplementedError('normalization layer [%s] is not found' % norm_type)
+#     return norm_layer
 
 def get_scheduler(optimizer, opt):
     if opt.lr_policy == 'lambda':
@@ -487,6 +488,65 @@ class ExpandNetwork(nn.Module):
 
         return y
 
+def l2normalize(v, eps=1e-12):
+    return v / (v.norm() + eps)
+
+class SpectralNorm(nn.Module):
+    def __init__(self, module, name='weight', power_iterations=1):
+        super(SpectralNorm, self).__init__()
+        self.module = module
+        self.name = name
+        self.power_iterations = power_iterations
+        if not self._made_params():
+            self._make_params()
+
+    def _update_u_v(self):
+        u = getattr(self.module, self.name + "_u")
+        v = getattr(self.module, self.name + "_v")
+        w = getattr(self.module, self.name + "_bar")
+
+        height = w.data.shape[0]
+        for _ in range(self.power_iterations):
+            v.data = l2normalize(torch.mv(torch.t(w.view(height,-1).data), u.data))
+            u.data = l2normalize(torch.mv(w.view(height,-1).data, v.data))
+
+        # sigma = torch.dot(u.data, torch.mv(w.view(height,-1).data, v.data))
+        sigma = u.dot(w.view(height, -1).mv(v))
+        setattr(self.module, self.name, w / sigma.expand_as(w))
+
+    def _made_params(self):
+        try:
+            u = getattr(self.module, self.name + "_u")
+            v = getattr(self.module, self.name + "_v")
+            w = getattr(self.module, self.name + "_bar")
+            return True
+        except AttributeError:
+            return False
+
+
+    def _make_params(self):
+        w = getattr(self.module, self.name)
+
+        height = w.data.shape[0]
+        width = w.view(height, -1).data.shape[1]
+
+        u = Parameter(w.data.new(height).normal_(0, 1), requires_grad=False)
+        v = Parameter(w.data.new(width).normal_(0, 1), requires_grad=False)
+        u.data = l2normalize(u.data)
+        v.data = l2normalize(v.data)
+        w_bar = Parameter(w.data)
+
+        del self.module._parameters[self.name]
+
+        self.module.register_parameter(self.name + "_u", u)
+        self.module.register_parameter(self.name + "_v", v)
+        self.module.register_parameter(self.name + "_bar", w_bar)
+
+
+    def forward(self, *args):
+        self._update_u_v()
+        return self.module.forward(*args)
+
 # class ExpandNetwork(nn.Module):    
 #     def __init__(self):        
 #         super(ExpandNetwork, self).__init__()        
@@ -613,9 +673,9 @@ class ExpandNetwork(nn.Module):
 
 def define_D(input_nc, ndf, norm='batch', use_sigmoid=False, init_type='normal', init_gain=0.02, gpu_id='cuda:0'):
     net = None
-    norm_layer = get_norm_layer(norm_type=norm)
+    # norm_layer = get_norm_layer(norm_type=norm)
 
-    net = MultiscaleDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, use_sigmoid=use_sigmoid, num_D=3, getIntermFeat=True)
+    net = MultiscaleDiscriminator(input_nc, ndf, n_layers=3, norm_layer=None, use_sigmoid=use_sigmoid, num_D=3, getIntermFeat=True)
 
     return init_net(net, init_type, init_gain, gpu_id)
 
@@ -667,7 +727,7 @@ class NLayerDiscriminator(nn.Module):
         self.getIntermFeat = getIntermFeat
         self.n_layers = n_layers
 
-        norm_layer = nn.utils.spectral_norm
+        norm_layer = SpectralNorm()
 
         kw = 4
         padw = int(np.ceil((kw-1.0)/2))
@@ -678,15 +738,14 @@ class NLayerDiscriminator(nn.Module):
             nf_prev = nf
             nf = min(nf * 2, 512)
             sequence += [[
-                nn.Conv2d(nf_prev, nf, kernel_size=kw, stride=2, padding=padw),
-                norm_layer, nn.LeakyReLU(0.2, True)
+                norm_layer(nn.Conv2d(nf_prev, nf, kernel_size=kw, stride=2, padding=padw)),
+                nn.LeakyReLU(0.2, True)
             ]]
 
         nf_prev = nf
         nf = min(nf * 2, 512)
         sequence += [[
-            nn.Conv2d(nf_prev, nf, kernel_size=kw, stride=1, padding=padw),
-            norm_layer,
+            norm_layer(nn.Conv2d(nf_prev, nf, kernel_size=kw, stride=1, padding=padw)),
             nn.LeakyReLU(0.2, True)
         ]]
 
