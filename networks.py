@@ -15,38 +15,6 @@ from torch.nn import Parameter
 
 import random
 
-class ChannelNorm2D(nn.Module):
-    """ 
-    Similar to default Torch instanceNorm2D but calculates
-    moments over channel dimension instead of spatial dims.
-    Expects input_dim in format (B,C,H,W)
-    """
-
-    def __init__(self, input_channels, momentum=0.1, eps=1e-3,
-                 affine=True, **kwargs):
-        super(ChannelNorm2D, self).__init__()
-
-        self.momentum = momentum
-        self.eps = eps
-        self.affine = affine
-
-        if affine is True:
-            self.gamma = nn.Parameter(torch.ones(1, input_channels, 1, 1))
-            self.beta = nn.Parameter(torch.zeros(1, input_channels, 1, 1))
-
-    def forward(self, x):
-        """
-        Calculate moments over channel dim, normalize.
-        x:  Image tensor, shape (B,C,H,W)
-        """
-        mu, var = torch.mean(x, dim=1, keepdim=True), torch.var(x, dim=1, keepdim=True)
-
-        x_normed = (x - mu) * torch.rsqrt(var + self.eps)
-
-        if self.affine is True:
-            x_normed = self.gamma * x_normed + self.beta
-        return x_normed
-
 class VGGLoss(nn.Module):
     def __init__(self, device):
         super(VGGLoss, self).__init__()        
@@ -397,10 +365,10 @@ class ResidualBlock(nn.Module):
     def __init__(self, channels):
         super(ResidualBlock, self).__init__()
         self.conv1 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in1 = ChannelNorm2D(channels, affine=True)
+        self.in1 = nn.BatchNorm2d(channels, affine=True)
         self.relu = nn.ReLU()
         self.conv2 = ConvLayer(channels, channels, kernel_size=3, stride=1)
-        self.in2 = ChannelNorm2D(channels, affine=True)
+        self.in2 = nn.BatchNorm2d(channels, affine=True)
 
     def forward(self, x):
         residual = x
@@ -422,13 +390,13 @@ class ExpandNetwork(nn.Module):
 
         # encoding layers
         self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
-        self.in1_e = ChannelNorm2D(32, affine=True)
+        self.in1_e = nn.BatchNorm2d(32, affine=True)
 
         self.conv2 = ConvLayer(32, 64, kernel_size=3, stride=2)
-        self.in2_e = ChannelNorm2D(64, affine=True)
+        self.in2_e = nn.BatchNorm2d(64, affine=True)
 
         self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
-        self.in3_e = ChannelNorm2D(128, affine=True)
+        self.in3_e = nn.BatchNorm2d(128, affine=True)
 
         self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
 
@@ -444,17 +412,17 @@ class ExpandNetwork(nn.Module):
         self.res9 = ResidualBlock(128)
 
         self.deconv_4 = ConvLayer(128, 128, kernel_size=3, stride=1)
-        self.in4_d = ChannelNorm2D(128, affine=True)
+        self.in4_d = nn.BatchNorm2d(128, affine=True)
 
         # decoding layers
         self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
-        self.in3_d = ChannelNorm2D(64, affine=True)
+        self.in3_d = nn.BatchNorm2d(64, affine=True)
 
         self.deconv2 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2 )
-        self.in2_d = ChannelNorm2D(32, affine=True)
+        self.in2_d = nn.BatchNorm2d(32, affine=True)
 
         self.deconv1 = UpsampleConvLayer(32, 3, kernel_size=9, stride=1)
-        self.in1_d = ChannelNorm2D(3, affine=True)
+        self.in1_d = nn.BatchNorm2d(3, affine=True)
 
     def forward(self, x):
         # encode
