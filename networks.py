@@ -191,7 +191,7 @@ class CompressionNetwork(nn.Module):
             nn.LeakyReLU(0.2)
         )
 
-        self.pooling = nn.AvgPool2d(3, stride=2)
+        # self.pooling = nn.AvgPool2d(3, stride=2)
         self.shuffle = nn.PixelShuffle(2)
         # pass
 
@@ -204,7 +204,7 @@ class CompressionNetwork(nn.Module):
         # res = self.conv_block4(res)
         # res = self.conv_block5(res)
 
-        res = self.pooling(res)
+        # res = self.pooling(res)
         res = self.shuffle(res)
 
         res = F.normalize(res, p=2, dim=1)
