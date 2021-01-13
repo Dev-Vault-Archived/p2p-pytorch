@@ -98,13 +98,14 @@ def calc_c_loss(features, targets, weights=None):
         
     return content_loss
 
-def load_checkpoint(net_g, net_d, opt_g, opt_d, sched_g, sched_d, loss_logger, filename='net_epoch_x.pth'):
+def load_checkpoint(net_o, net_g, net_d, opt_g, opt_d, sched_g, sched_d, loss_logger, filename='net_epoch_x.pth'):
     start_epoch = 0
     if os.path.isfile(filename):
         print("=> Loading checkpoint '{}'".format(filename))
         state = torch.load(filename)
 
         start_epoch = state['epoch']
+        net_o.load_state_dict(state['state_dict_o'])
         net_g.load_state_dict(state['state_dict_g'])
         net_d.load_state_dict(state['state_dict_d'])
         opt_g.load_state_dict(state['optimizer_g'])
@@ -250,7 +251,7 @@ if __name__ == '__main__':
 
     if start_epoch > 1:
         # Jika ternyata start epochnya lebih dari 1, berarti load checkpoint
-        start_epoch, net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger = load_checkpoint(net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger, "checkpoint/{}/net_{}_epoch_{}.pth".format(opt.dataset, opt.name, start_epoch-1))
+        start_epoch, net_o, net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger = load_checkpoint(net_o, net_g, net_d, optimizer_g, optimizer_d, net_g_scheduler, net_d_scheduler, losslogger, "checkpoint/{}/net_{}_epoch_{}.pth".format(opt.dataset, opt.name, start_epoch-1))
 
         for state in optimizer_g.state.values():
             for k, v in state.items():
@@ -523,12 +524,13 @@ if __name__ == '__main__':
             state = {
                 'epoch': epoch + 1,
                 'state_dict_g': net_g.state_dict(),
-                'state_dict_d': net_d.state_dict(),
-                'optimizer_g': optimizer_g.state_dict(),
-                'optimizer_d': optimizer_d.state_dict(),
-                'scheduler_g': net_g_scheduler.state_dict(),
-                'scheduler_d': net_d_scheduler.state_dict(),
-                'losslogger': losslogger,
+                'state_dict_o': net_o.state_dict(),
+                # 'state_dict_d': net_d.state_dict(),
+                # 'optimizer_g': optimizer_g.state_dict(),
+                # 'optimizer_d': optimizer_d.state_dict(),
+                # 'scheduler_g': net_g_scheduler.state_dict(),
+                # 'scheduler_d': net_d_scheduler.state_dict(),
+                # 'losslogger': losslogger,
             }
 
             torch.save(state, net_g_model_out_path)
