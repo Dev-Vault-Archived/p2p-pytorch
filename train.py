@@ -298,7 +298,7 @@ if __name__ == '__main__':
             opti_b = net_o(real_a.detach())
 
             # Generate fake real image
-            fake_b = net_g(opti_b)
+            fake_b = net_g(opti_b.detach())
 
             # Updating Detection network (Discriminator)
             
