@@ -4,7 +4,7 @@ import os
 from math import isnan, log10
 from numpy.core.numeric import Inf
 
-from torch.autograd import Variable
+# from torch.autograd import Variable
 from tqdm import tqdm
 import numpy as np
 import torch
@@ -13,7 +13,7 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
-import torchvision
+# import torchvision
 from skimage.metrics import structural_similarity
 
 # from utils import save_img
@@ -482,12 +482,12 @@ if __name__ == '__main__':
             state = {
                 'epoch': epoch + 1,
                 'state_dict_g': net_g.state_dict(),
-                # 'state_dict_d': net_d.state_dict(),
-                # 'optimizer_g': optimizer_g.state_dict(),
-                # 'optimizer_d': optimizer_d.state_dict(),
-                # 'scheduler_g': net_g_scheduler.state_dict(),
-                # 'scheduler_d': net_d_scheduler.state_dict(),
-                # 'losslogger': losslogger,
+                'state_dict_d': net_d.state_dict(),
+                'optimizer_g': optimizer_g.state_dict(),
+                'optimizer_d': optimizer_d.state_dict(),
+                'scheduler_g': net_g_scheduler.state_dict(),
+                'scheduler_d': net_d_scheduler.state_dict(),
+                'losslogger': losslogger,
             }
 
             torch.save(state, net_g_model_out_path)
