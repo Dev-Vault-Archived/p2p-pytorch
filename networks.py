@@ -384,8 +384,8 @@ class ExpandNetwork(nn.Module):
         super(ExpandNetwork, self).__init__()
         
         # nonlineraity
-        self.relu = nn.ReLU()
-        self.leakyRelu = nn.LeakyReLU(0.2)
+        self.relu = nn.PReLU()
+        # self.leakyRelu = nn.LeakyReLU(0.2)
         self.tanh = nn.Tanh()
 
         # encoding layers
@@ -398,7 +398,7 @@ class ExpandNetwork(nn.Module):
         self.conv3 = ConvLayer(64, 128, kernel_size=3, stride=2)
         self.in3_e = nn.BatchNorm2d(128, affine=True)
 
-        self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
+        # self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
 
         # residual layers
         self.res1 = ResidualBlock(128)
@@ -410,9 +410,6 @@ class ExpandNetwork(nn.Module):
         self.res7 = ResidualBlock(128)
         self.res8 = ResidualBlock(128)
         self.res9 = ResidualBlock(128)
-
-        self.deconv_4 = ConvLayer(128, 128, kernel_size=3, stride=1)
-        self.in4_d = nn.BatchNorm2d(128, affine=True)
 
         # decoding layers
         self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
@@ -430,23 +427,20 @@ class ExpandNetwork(nn.Module):
         y = self.relu(self.in2_e(self.conv2(y)))
         y = self.relu(self.in3_e(self.conv3(y)))
 
-        y = self.leakyRelu(self.conv4(y))
-
         # residual layers
-        residual = y
-        r = self.res1(y)
-        r = self.res2(r)
-        r = self.res3(r)
-        r = self.res4(r)
-        r = self.res5(r)
-        r = self.res6(r)
-        r = self.res7(r)
-        r = self.res8(r)
-        r = self.res9(r)
+        # residual = y
+        y = self.res1(y)
+        y = self.res2(y)
+        y = self.res3(y)
+        y = self.res4(y)
+        y = self.res5(y)
+        y = self.res6(y)
+        y = self.res7(y)
+        y = self.res8(y)
+        y = self.res9(y)
 
-        r = self.in4_d(self.deconv_4(r))
-        r = r + residual
-        y = self.leakyRelu(r)
+        # r = r + residual
+        # y = self.leakyRelu(r)
 
         # decode
         y = self.relu(self.in3_d(self.deconv3(y)))
