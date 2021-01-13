@@ -203,12 +203,12 @@ class CompressionNetwork(nn.Module):
         super(CompressionNetwork, self).__init__()
 
         self.conv_input = nn.Sequential(
-            ConvLayer(3, 64, kernel_size=3),
+            ConvLayer(3, 64, kernel_size=3, stride=1),
             nn.PReLU()
         )
 
         self.conv_block1 = nn.Sequential(
-            ConvLayer(64, 64, kernel_size=3),
+            ConvLayer(64, 64, kernel_size=3, stride=1),
             nn.BatchNorm2d(64),
             nn.PReLU()
         )
