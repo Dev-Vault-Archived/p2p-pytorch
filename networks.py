@@ -191,24 +191,6 @@ class CompressionNetwork(nn.Module):
             nn.LeakyReLU(0.2)
         )
 
-        self.conv_block3 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3, stride=1),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2)
-        )
-
-        self.conv_block4 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3, stride=1),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2)
-        )
-
-        self.conv_block5 = nn.Sequential(
-            nn.Conv2d(64, 12, kernel_size=2, stride=2),
-            nn.BatchNorm2d(12),
-            nn.LeakyReLU(0.2)
-        )
-
         self.pooling = nn.AvgPool2d(3, stride=2)
         self.shuffle = nn.PixelShuffle(2)
         pass
@@ -218,11 +200,9 @@ class CompressionNetwork(nn.Module):
         res = self.conv_input(x)
         res = self.conv_block1(res)
         res = self.conv_block2(res)
-        res = self.conv_block3(res)
-        res = self.conv_block4(res)
-        print(res.size())
-
-        res = self.conv_block5(res)
+        # res = self.conv_block3(res)
+        # res = self.conv_block4(res)
+        # res = self.conv_block5(res)
         res = self.pooling(res)
         print(res.size())
         res = self.shuffle(res)
