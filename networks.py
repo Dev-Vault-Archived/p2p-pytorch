@@ -485,22 +485,22 @@ class ExpandNetwork(nn.Module):
         self.in4_e = nn.BatchNorm2d(128, affine=True)
 
         self.pixel = PixelUnshuffle(2)
-        self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
+        self.conv4 = ConvLayer(512, 512, kernel_size=3, stride=1)
 
         # self.conv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
         
         # residual layers
-        self.res1 = ResidualBlock(128)
-        self.res2 = ResidualBlock(128)
-        self.res3 = ResidualBlock(128)
-        self.res4 = ResidualBlock(128)
-        self.res5 = ResidualBlock(128)
-        self.res6 = ResidualBlock(128)
-        self.res7 = ResidualBlock(128)
-        self.res8 = ResidualBlock(128)
-        self.res9 = ResidualBlock(128)
+        self.res1 = ResidualBlock(512)
+        self.res2 = ResidualBlock(512)
+        self.res3 = ResidualBlock(512)
+        self.res4 = ResidualBlock(512)
+        self.res5 = ResidualBlock(512)
+        self.res6 = ResidualBlock(512)
+        self.res7 = ResidualBlock(512)
+        self.res8 = ResidualBlock(512)
+        self.res9 = ResidualBlock(512)
         
-        self.deconv4 = ConvLayer(128, 128, kernel_size=3, stride=1)
+        self.deconv4 = ConvLayer(512, 128, kernel_size=3, stride=1)
 
         # decoding layers
         self.deconv3 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=2 )
