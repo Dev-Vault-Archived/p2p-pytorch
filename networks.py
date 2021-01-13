@@ -198,7 +198,7 @@ class CompressionNetwork(nn.Module):
         )
 
         self.pooling = nn.AvgPool2d(3, stride=2)
-        # self.shuffle = nn.PixelShuffle(2)
+        self.shuffle = nn.PixelShuffle(2)
         # pass
 
     def forward(self, x):
@@ -211,7 +211,7 @@ class CompressionNetwork(nn.Module):
         # res = self.conv_block5(res)
 
         res = self.pooling(res)
-        # res = self.shuffle(res)
+        res = self.shuffle(res)
 
         res = F.normalize(res, p=2, dim=1)
         res = F.interpolate(res, scale_factor=2)
