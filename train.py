@@ -394,7 +394,7 @@ if __name__ == '__main__':
             opti_b_next = net_o(real_a)
 
             # Generate fake real image
-            fake_b_next = net_g(opti_b_next)
+            fake_b_next = net_g(opti_b_next.detach())
 
             opt_loss = mse_criterion(fake_b_next, real_b)
             content_loss_optimizer = criterionVGG(opti_b_next, real_b) * 10.0
